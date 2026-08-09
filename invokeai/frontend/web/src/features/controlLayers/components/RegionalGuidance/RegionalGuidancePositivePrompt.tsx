@@ -40,7 +40,7 @@ export const RegionalGuidancePositivePrompt = memo(() => {
   const onDeletePrompt = useCallback(() => {
     dispatch(rgPositivePromptChanged({ entityIdentifier, prompt: null }));
   }, [dispatch, entityIdentifier]);
-  const { onChange, isOpen, onClose, onOpen, onSelect, onKeyDown } = usePrompt({
+  const { onChange, isOpen, onClose, onOpen, onSelect, onKeyDown, cta } = usePrompt({
     prompt,
     textareaRef,
     onChange: _onChange,
@@ -49,7 +49,13 @@ export const RegionalGuidancePositivePrompt = memo(() => {
   usePromptAttentionHotkeys({ textareaRef, onPromptChange: _onChange });
 
   return (
-    <PromptPopover isOpen={isOpen} onClose={onClose} onSelect={onSelect} width={textareaRef.current?.clientWidth}>
+    <PromptPopover
+      isOpen={isOpen}
+      onClose={onClose}
+      onSelect={onSelect}
+      width={textareaRef.current?.clientWidth}
+      cta={cta}
+    >
       <Box pos="relative" w="full">
         <Textarea
           id="prompt"

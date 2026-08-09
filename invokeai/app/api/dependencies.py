@@ -12,6 +12,8 @@ from invokeai.app.services.board_images.board_images_default import BoardImagesS
 from invokeai.app.services.board_records.board_records_sqlite import SqliteBoardRecordStorage
 from invokeai.app.services.board_video_records.board_video_records_sqlite import SqliteBoardVideoRecordStorage
 from invokeai.app.services.boards.boards_default import BoardService
+from invokeai.app.services.clip_tag_autocomplete.clip_tag_autocomplete_database import CtaDatabase
+from invokeai.app.services.clip_tag_autocomplete.clip_tag_autocomplete_service import ClipTagAutocompleteService
 from invokeai.app.services.bulk_download.bulk_download_default import BulkDownloadService
 from invokeai.app.services.client_state_persistence.client_state_persistence_sqlite import ClientStatePersistenceSqlite
 from invokeai.app.services.config.config_default import InvokeAIAppConfig
@@ -195,6 +197,18 @@ class ApiDependencies:
             logger=logger,
             record_store=model_record_service,
         )
+
+        # Initialize CTA sidecar
+        cta_db = CtaDatabase(config=config, logger=logger)
+        cta_db.initialize()
+
+        # Cleanup orphan model configs
+        if cta_db.is_available:
+            installed_model_keys = {m.key for m in model_record_service.all_models()}
+            cta_db.cleanup_orphan_model_configs(installed_model_keys)
+
+        clip_tag_autocomplete = ClipTagAutocompleteService(cta_db=cta_db, logger=logger)
+
         model_images_service = ModelImageFileStorageDisk(model_images_folder / "model_images")
         model_relationships = ModelRelationshipsService()
         model_relationship_records = SqliteModelRelationshipRecordStorage(db=db)
@@ -250,6 +264,7 @@ class ApiDependencies:
             video_records=video_records,
             board_video_records=board_video_records,
             gallery=gallery,
+            clip_tag_autocomplete=clip_tag_autocomplete,
         )
 
         ApiDependencies.invoker = Invoker(services)

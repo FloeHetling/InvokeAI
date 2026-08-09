@@ -5,8 +5,15 @@ export type PromptTriggerSelectProps = {
   onClose: () => void;
 };
 
+type PromptPopoverCtaProps = {
+  isOpen: boolean;
+  modelId: string | null;
+  onSelect: (renderedContent: string) => void;
+};
+
 export type PromptPopoverProps = PropsWithChildren &
   PromptTriggerSelectProps & {
     isOpen: boolean;
     width?: number | string;
+    cta?: PromptPopoverCtaProps;
   };

@@ -189,6 +189,7 @@ export const ParamPositivePrompt = memo(() => {
     onSelect,
     onKeyDown: onKeyDownPrompt,
     onFocus,
+    cta,
   } = usePrompt({
     prompt,
     textareaRef: textareaRef,
@@ -317,7 +318,7 @@ export const ParamPositivePrompt = memo(() => {
 
   return (
     <Box pos="relative" ref={dropTargetRef}>
-      <PromptPopover isOpen={isOpen} onClose={onClose} onSelect={onSelect} width={textareaWidth}>
+      <PromptPopover isOpen={isOpen} onClose={onClose} onSelect={onSelect} width={textareaWidth} cta={cta}>
         <Box pos="relative" pb={`${PROMPT_RESIZE_HANDLE_HEIGHT_PX}px`}>
           <Textarea
             className="positive-prompt-textarea"

@@ -84,6 +84,12 @@ const tagTypes = [
   // Polymorphic gallery list (images + videos interleaved by created_at).
   'GalleryItemList',
   'GalleryItemNameList',
+  // Clip Tag Autocomplete (CTA) tags.
+  'CtaStatus',
+  'CtaTags',
+  'CtaTagSets',
+  'CtaSyntaxProfiles',
+  'CtaModelConfig',
 ] as const;
 export type ApiTagDescription = TagDescription<(typeof tagTypes)[number]>;
 export const LIST_TAG = 'LIST';

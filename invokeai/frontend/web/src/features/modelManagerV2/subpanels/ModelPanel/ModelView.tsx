@@ -1,4 +1,5 @@
 import { Box, Divider, Flex, SimpleGrid } from '@invoke-ai/ui-library';
+import { ClipTagAutocompleteModelSettings } from 'features/clipTagAutocomplete/components/ClipTagAutocompleteModelSettings';
 import { useIsModelManagerEnabled } from 'features/modelManagerV2/hooks/useIsModelManagerEnabled';
 import { ControlAdapterModelDefaultSettings } from 'features/modelManagerV2/subpanels/ModelPanel/ControlAdapterModelDefaultSettings/ControlAdapterModelDefaultSettings';
 import { EncoderModelSettings } from 'features/modelManagerV2/subpanels/ModelPanel/EncoderModelSettings/EncoderModelSettings';
@@ -146,6 +147,7 @@ export const ModelView = memo(({ modelConfig }: Props) => {
               {modelConfig.type === 'main' && modelConfig.base !== 'sdxl-refiner' && (
                 <MainModelDefaultSettings modelConfig={modelConfig} />
               )}
+              {modelConfig.type === 'main' && <ClipTagAutocompleteModelSettings modelId={modelConfig.key} />}
               {(modelConfig.type === 'controlnet' ||
                 modelConfig.type === 't2i_adapter' ||
                 modelConfig.type === 'control_lora') && (

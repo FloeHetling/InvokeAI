@@ -29,8 +29,10 @@ const zLanguage = z.enum([
 export type Language = z.infer<typeof zLanguage>;
 export const isLanguage = (v: unknown): v is Language => zLanguage.safeParse(v).success;
 
+const zClipTagAutocompleteHotPrefix = z.enum(['~', '*']).nullable();
+
 export const zSystemState = z.object({
-  _version: z.literal(3),
+  _version: z.literal(4),
   shouldConfirmOnDelete: z.boolean(),
   shouldAntialiasProgressImage: z.boolean(),
   shouldConfirmOnNewSession: z.boolean(),
@@ -46,5 +48,7 @@ export const zSystemState = z.object({
   shouldHighlightFocusedRegions: z.boolean(),
   shouldUseMiddleClickToOpenInNewTab: z.boolean(),
   prefersNumericAttentionWeights: z.boolean(),
+  clipTagAutocompleteEnabled: z.boolean(),
+  clipTagAutocompleteHotPrefix: zClipTagAutocompleteHotPrefix,
 });
 export type SystemState = z.infer<typeof zSystemState>;

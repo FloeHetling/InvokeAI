@@ -704,6 +704,10 @@ def delete_model(
             installer = ApiDependencies.invoker.services.model_manager.install
             installer.delete(key)
             logger.info(f"Deleted model: {key}")
+            # also cleaning up linked model record in clip-tag-autocomplete own DB
+            cta_service = ApiDependencies.invoker.services.clip_tag_autocomplete
+            if cta_service is not None:
+                cta_service.request_model_config_cleanup(key)
             return Response(status_code=204)
         except UnknownModelException as e:
             logger.error(str(e))
@@ -767,6 +771,10 @@ def bulk_delete_models(
             # than aborting the whole request or racing the operation that holds it.
             with _claim_model_key(key):
                 installer.delete(key)
+            # making sure no linked entry are left behind in clip-tag-autocomplete database as well
+            cta_service = ApiDependencies.invoker.services.clip_tag_autocomplete
+            if cta_service is not None:
+                cta_service.request_model_config_cleanup(key)
             deleted.append(key)
             logger.info(f"Deleted model: {key}")
         except HTTPException as e:

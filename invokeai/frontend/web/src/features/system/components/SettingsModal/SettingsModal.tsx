@@ -22,6 +22,8 @@ import { InformationalPopover } from 'common/components/InformationalPopover/Inf
 import ScrollableContent from 'common/components/OverlayScrollbars/ScrollableContent';
 import { buildUseBoolean } from 'common/hooks/useBoolean';
 import { useIsAdmin } from 'features/auth/hooks/useIsAdmin';
+import { ClipTagAutocompleteManagerModal } from 'features/clipTagAutocomplete/components/ClipTagAutocompleteManagerModal';
+import { ClipTagAutocompleteSettings } from 'features/clipTagAutocomplete/components/ClipTagAutocompleteSettings';
 import { selectShouldUseCPUNoise, shouldUseCpuNoiseChanged } from 'features/controlLayers/store/paramsSlice';
 import { ExternalProviderStatusList } from 'features/system/components/SettingsModal/ExternalProviderStatusList';
 import { useRefreshAfterResetModal } from 'features/system/components/SettingsModal/RefreshAfterResetModal';
@@ -91,6 +93,12 @@ const SettingsModal = (props: { children: ReactElement<{ onClick?: () => void }>
   const settingsModal = useSettingsModal();
   const refreshModal = useRefreshAfterResetModal();
   const canEditRuntimeConfig = useIsAdmin();
+  const [isCtaManagerOpen, setIsCtaManagerOpen] = useState(false);
+  const handleOpenCtaManager = useCallback(() => {
+    settingsModal.setFalse();
+    setIsCtaManagerOpen(true);
+  }, [settingsModal]);
+  const handleCloseCtaManager = useCallback(() => setIsCtaManagerOpen(false), []);
   // runtime_config is an admin-only route; don't fire it for non-admins just to render disabled controls.
   const { data: runtimeConfig } = useGetRuntimeConfigQuery(undefined, { skip: !canEditRuntimeConfig });
   const [updateRuntimeConfig, { isLoading: isUpdatingRuntimeConfig }] = useUpdateRuntimeConfigMutation();
@@ -411,6 +419,14 @@ const SettingsModal = (props: { children: ReactElement<{ onClick?: () => void }>
                     </FormControl>
                   </StickyScrollable>
 
+                  <StickyScrollable title={t('settings.clipTagAutocomplete')}>
+                    <ClipTagAutocompleteSettings
+                      onOpenManager={handleOpenCtaManager}
+                      isAdmin={canEditRuntimeConfig}
+                      isSettingsOpen={settingsModal.isTrue}
+                    />
+                  </StickyScrollable>
+
                   <StickyScrollable title={t('settings.developer')}>
                     <SettingsDeveloperLogIsEnabled />
                     <SettingsDeveloperLogLevel />
@@ -449,6 +465,7 @@ const SettingsModal = (props: { children: ReactElement<{ onClick?: () => void }>
           <ModalFooter />
         </ModalContent>
       </Modal>
+      <ClipTagAutocompleteManagerModal isOpen={isCtaManagerOpen} onClose={handleCloseCtaManager} />
     </>
   );
 };

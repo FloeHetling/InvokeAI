@@ -49,6 +49,8 @@ if TYPE_CHECKING:
     from invokeai.app.services.workflow_thumbnails.workflow_thumbnails_base import WorkflowThumbnailServiceBase
     from invokeai.backend.stable_diffusion.diffusion.conditioning_data import ConditioningFieldData
 
+    from invokeai.app.services.clip_tag_autocomplete.clip_tag_autocomplete_service import ClipTagAutocompleteService
+
 
 class InvocationServices:
     """Services that can be used by invocations"""
@@ -93,6 +95,7 @@ class InvocationServices:
         board_video_records: "BoardVideoRecordStorageBase",
         gallery: "GalleryServiceABC",
         image_moves: "ImageMoveService | None" = None,
+        clip_tag_autocomplete: "ClipTagAutocompleteService | None" = None,
     ):
         self.board_images = board_images
         self.board_image_records = board_image_records
@@ -132,3 +135,4 @@ class InvocationServices:
         self.video_records = video_records
         self.board_video_records = board_video_records
         self.gallery = gallery
+        self.clip_tag_autocomplete = clip_tag_autocomplete

@@ -54,7 +54,7 @@ export const ParamNegativePrompt = memo(() => {
     },
     [dispatch]
   );
-  const { onChange, isOpen, onClose, onOpen, onSelect, onKeyDown } = usePrompt({
+  const { onChange, isOpen, onClose, onOpen, onSelect, onKeyDown, cta } = usePrompt({
     prompt,
     textareaRef,
     onChange: _onChange,
@@ -81,7 +81,7 @@ export const ParamNegativePrompt = memo(() => {
   }, []);
 
   return (
-    <PromptPopover isOpen={isOpen} onClose={onClose} onSelect={onSelect} width={textareaWidth}>
+    <PromptPopover isOpen={isOpen} onClose={onClose} onSelect={onSelect} width={textareaWidth} cta={cta}>
       <Box pos="relative" w="full" pb={`${PROMPT_RESIZE_HANDLE_HEIGHT_PX}px`}>
         <Textarea
           className="negative-prompt-textarea"

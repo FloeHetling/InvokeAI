@@ -3291,6 +3291,295 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/clip_tag_autocomplete/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cta Status
+         * @description Returns the CTA availability status.
+         */
+        get: operations["get_cta_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/autocomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cta Autocomplete
+         * @description Search for CTA tags, optionally paging through a category filter.
+         */
+        get: operations["cta_autocomplete"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cta Tags
+         * @description List CTA tags with server-side filtering and cursor pagination. Admin only.
+         */
+        get: operations["list_cta_tags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/tag_sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cta Tag Sets
+         * @description List CTA tag sets.
+         */
+        get: operations["list_cta_tag_sets"];
+        put?: never;
+        /** Create Cta Tag Set */
+        post: operations["create_cta_tag_set"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/syntax_profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cta Syntax Profiles
+         * @description List CTA syntax profiles.
+         */
+        get: operations["list_cta_syntax_profiles"];
+        put?: never;
+        /** Create Cta Syntax Profile */
+        post: operations["create_cta_syntax_profile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/tags/i/{tag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cta Tag */
+        get: operations["get_cta_tag"];
+        put?: never;
+        post?: never;
+        /** Delete Cta Tag */
+        delete: operations["delete_cta_tag"];
+        options?: never;
+        head?: never;
+        /** Update Cta Tag */
+        patch: operations["update_cta_tag"];
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/tags/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Mutate Cta Tags */
+        post: operations["bulk_mutate_cta_tags"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/tag_sets/i/{tag_set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Cta Tag Set */
+        delete: operations["delete_cta_tag_set"];
+        options?: never;
+        head?: never;
+        /** Update Cta Tag Set */
+        patch: operations["update_cta_tag_set"];
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/syntax_profiles/i/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Cta Syntax Profile */
+        delete: operations["delete_cta_syntax_profile"];
+        options?: never;
+        head?: never;
+        /** Update Cta Syntax Profile */
+        patch: operations["update_cta_syntax_profile"];
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/models/i/{model_id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cta Model Config */
+        get: operations["get_cta_model_config"];
+        /** Set Cta Model Config */
+        put: operations["set_cta_model_config"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/imports/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cta Sample Csv */
+        get: operations["get_cta_sample_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/imports/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stage Cta Import
+         * @description Stage a CSV file for import. Returns detection results and sample.
+         */
+        post: operations["stage_cta_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/imports/i/{session_id}/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare Cta Import
+         * @description Prepare (full parse) a staged import.
+         */
+        post: operations["prepare_cta_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/imports/i/{session_id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Cta Import
+         * @description Commit a prepared import to the CTA database.
+         */
+        post: operations["commit_cta_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clip_tag_autocomplete/imports/i/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Cancel Cta Import
+         * @description Cancel and clean up an import session.
+         */
+        delete: operations["cancel_cta_import"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -4938,6 +5227,11 @@ export type components = {
              * @description The image file to upload
              */
             image: Blob;
+        };
+        /** Body_stage_cta_import */
+        Body_stage_cta_import: {
+            /** File */
+            file: Blob;
         };
         /** Body_star_images_in_list */
         Body_star_images_in_list: {
@@ -8799,6 +9093,429 @@ export type components = {
              * @constant
              */
             type: "crop_latents";
+        };
+        /** CtaAutocompleteCandidate */
+        CtaAutocompleteCandidate: {
+            /** Id */
+            id: string;
+            /** Canonical Content */
+            canonical_content: string;
+            /** Popularity */
+            popularity?: number | null;
+            /**
+             * Tag Type
+             * @enum {string}
+             */
+            tag_type: "general" | "artist" | "copyright" | "character" | "meta" | "other";
+            /** Rendered Content */
+            rendered_content: string;
+        };
+        /** CtaBulkAddToSet */
+        CtaBulkAddToSet: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "add_to_set";
+            /** Tag Set Id */
+            tag_set_id: string;
+        };
+        /** CtaBulkDelete */
+        CtaBulkDelete: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "delete";
+        };
+        /** CtaBulkFilterSelection */
+        CtaBulkFilterSelection: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "filter";
+            filter: components["schemas"]["CtaTagFilter"];
+        };
+        /** CtaBulkIdSelection */
+        CtaBulkIdSelection: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "ids";
+            /** Ids */
+            ids: string[];
+        };
+        /** CtaBulkRemoveFromSet */
+        CtaBulkRemoveFromSet: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "remove_from_set";
+            /** Tag Set Id */
+            tag_set_id: string;
+        };
+        /** CtaBulkResult */
+        CtaBulkResult: {
+            /** Selected Count */
+            selected_count: number;
+            /** Affected Count */
+            affected_count: number;
+            /**
+             * Merged Count
+             * @default 0
+             */
+            merged_count?: number;
+        };
+        /** CtaBulkSetType */
+        CtaBulkSetType: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "set_type";
+            /**
+             * Tag Type
+             * @enum {string}
+             */
+            tag_type: "general" | "artist" | "copyright" | "character" | "meta" | "other";
+        };
+        /** CtaBulkTagRequest */
+        CtaBulkTagRequest: {
+            /** Selection */
+            selection: components["schemas"]["CtaBulkIdSelection"] | components["schemas"]["CtaBulkFilterSelection"];
+            /** Operation */
+            operation: components["schemas"]["CtaBulkAddToSet"] | components["schemas"]["CtaBulkRemoveFromSet"] | components["schemas"]["CtaBulkSetType"] | components["schemas"]["CtaBulkDelete"];
+        };
+        /** CtaImportCommitRequest */
+        CtaImportCommitRequest: {
+            /** Destination */
+            destination: components["schemas"]["CtaImportUncategorizedDestination"] | components["schemas"]["CtaImportNewSetDestination"] | components["schemas"]["CtaImportExistingSetDestination"];
+        };
+        /** CtaImportExistingSetDestination */
+        CtaImportExistingSetDestination: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "existing_set";
+            /** Tag Set Id */
+            tag_set_id: string;
+            /**
+             * Mode
+             * @default merge
+             * @enum {string}
+             */
+            mode?: "merge" | "replace";
+        };
+        /** CtaImportMapping */
+        CtaImportMapping: {
+            /**
+             * Delimiter
+             * @enum {string}
+             */
+            delimiter: "," | ";" | "\t" | "|";
+            /** First Row Contains Column Names */
+            first_row_contains_column_names: boolean;
+            /** Tag Column */
+            tag_column: number;
+            /** Popularity Column */
+            popularity_column?: number | null;
+            /** Type Column */
+            type_column?: number | null;
+        };
+        /** CtaImportNewSetDestination */
+        CtaImportNewSetDestination: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "new_set";
+            /** Name */
+            name: string;
+        };
+        /** CtaImportPreviewDTO */
+        CtaImportPreviewDTO: {
+            /** Session Id */
+            session_id: string;
+            /**
+             * State
+             * @constant
+             */
+            state: "prepared";
+            /** Preview */
+            preview: components["schemas"]["CtaImportPreviewRow"][];
+            summary: components["schemas"]["CtaImportSummaryDTO"];
+        };
+        /** CtaImportPreviewRow */
+        CtaImportPreviewRow: {
+            /** Canonical Content */
+            canonical_content: string;
+            /** Popularity */
+            popularity?: number | null;
+            /**
+             * Tag Type
+             * @enum {string}
+             */
+            tag_type: "general" | "artist" | "copyright" | "character" | "meta" | "other";
+        };
+        /** CtaImportResultDTO */
+        CtaImportResultDTO: {
+            /** New Tags */
+            new_tags: number;
+            /** Existing Tags Merged */
+            existing_tags_merged: number;
+            /** Popularity Updated */
+            popularity_updated: number;
+            /** Type Conflicts Ignored */
+            type_conflicts_ignored: number;
+            /** Skipped Rows */
+            skipped_rows: number;
+        };
+        /** CtaImportStageDTO */
+        CtaImportStageDTO: {
+            /** Session Id */
+            session_id: string;
+            /**
+             * Detected Delimiter
+             * @enum {string}
+             */
+            detected_delimiter: "," | ";" | "\t" | "|";
+            /** Detected Header */
+            detected_header: boolean;
+            /** Columns */
+            columns: string[];
+            /** Sample Rows */
+            sample_rows: string[][];
+            /** Is Single Column */
+            is_single_column: boolean;
+        };
+        /** CtaImportSummaryDTO */
+        CtaImportSummaryDTO: {
+            /** Rows Read */
+            rows_read: number;
+            /** Valid Rows */
+            valid_rows: number;
+            /** Skipped Rows */
+            skipped_rows: number;
+            /** Invalid Popularity To Unknown */
+            invalid_popularity_to_unknown: number;
+            /** Unknown Types To Other */
+            unknown_types_to_other: number;
+        };
+        /** CtaImportUncategorizedDestination */
+        CtaImportUncategorizedDestination: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "uncategorized";
+        };
+        /** CtaModelConfigDTO */
+        CtaModelConfigDTO: {
+            /** Model Id */
+            model_id: string;
+            /** Syntax Profile Id */
+            syntax_profile_id?: string | null;
+            /** Tag Set Ids */
+            tag_set_ids?: string[];
+        };
+        /** CtaModelConfigUpdate */
+        CtaModelConfigUpdate: {
+            /** Syntax Profile Id */
+            syntax_profile_id?: string | null;
+            /** Tag Set Ids */
+            tag_set_ids?: string[];
+        };
+        /** CtaStatus */
+        CtaStatus: {
+            /** Available */
+            available: boolean;
+            reason?: components["schemas"]["CtaStatusReason"] | null;
+        };
+        /**
+         * CtaStatusReason
+         * @enum {string}
+         */
+        CtaStatusReason: "fts5_unavailable" | "database_incompatible" | "database_error";
+        /** CtaSyntaxProfileCreate */
+        CtaSyntaxProfileCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Spaces To Underscores
+             * @default true
+             */
+            spaces_to_underscores?: boolean;
+            /**
+             * Escape Parentheses
+             * @default true
+             */
+            escape_parentheses?: boolean;
+            /**
+             * Escape Colons
+             * @default true
+             */
+            escape_colons?: boolean;
+            /**
+             * Append Type Parentheses
+             * @default false
+             */
+            append_type_parentheses?: boolean;
+            /**
+             * Prefix Artist With By
+             * @default false
+             */
+            prefix_artist_with_by?: boolean;
+        };
+        /** CtaSyntaxProfileDTO */
+        CtaSyntaxProfileDTO: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Spaces To Underscores
+             * @default true
+             */
+            spaces_to_underscores?: boolean;
+            /**
+             * Escape Parentheses
+             * @default true
+             */
+            escape_parentheses?: boolean;
+            /**
+             * Escape Colons
+             * @default true
+             */
+            escape_colons?: boolean;
+            /**
+             * Append Type Parentheses
+             * @default false
+             */
+            append_type_parentheses?: boolean;
+            /**
+             * Prefix Artist With By
+             * @default false
+             */
+            prefix_artist_with_by?: boolean;
+        };
+        /** CtaSyntaxProfileUpdate */
+        CtaSyntaxProfileUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Spaces To Underscores */
+            spaces_to_underscores?: boolean | null;
+            /** Escape Parentheses */
+            escape_parentheses?: boolean | null;
+            /** Escape Colons */
+            escape_colons?: boolean | null;
+            /** Append Type Parentheses */
+            append_type_parentheses?: boolean | null;
+            /** Prefix Artist With By */
+            prefix_artist_with_by?: boolean | null;
+        };
+        /** CtaTagDTO */
+        CtaTagDTO: {
+            /** Id */
+            id: string;
+            /** Canonical Content */
+            canonical_content: string;
+            /** Popularity */
+            popularity?: number | null;
+            /**
+             * Tag Type
+             * @enum {string}
+             */
+            tag_type: "general" | "artist" | "copyright" | "character" | "meta" | "other";
+        };
+        /** CtaTagDetailDTO */
+        CtaTagDetailDTO: {
+            /** Id */
+            id: string;
+            /** Canonical Content */
+            canonical_content: string;
+            /** Popularity */
+            popularity?: number | null;
+            /**
+             * Tag Type
+             * @enum {string}
+             */
+            tag_type: "general" | "artist" | "copyright" | "character" | "meta" | "other";
+            /** Tag Set Ids */
+            tag_set_ids?: string[];
+        };
+        /** CtaTagFilter */
+        CtaTagFilter: {
+            /** Q */
+            q?: string | null;
+            /** Tag Type */
+            tag_type?: ("general" | "artist" | "copyright" | "character" | "meta" | "other") | null;
+            /** Tag Set Id */
+            tag_set_id?: string | null;
+            /**
+             * Uncategorized
+             * @default false
+             */
+            uncategorized?: boolean;
+        };
+        /** CtaTagMutationResult */
+        CtaTagMutationResult: {
+            tag: components["schemas"]["CtaTagDetailDTO"];
+            /**
+             * Merged
+             * @default false
+             */
+            merged?: boolean;
+        };
+        /** CtaTagPage */
+        CtaTagPage: {
+            /** Items */
+            items: components["schemas"]["CtaTagDTO"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Total Count */
+            total_count: number;
+        };
+        /** CtaTagSetCreate */
+        CtaTagSetCreate: {
+            /** Name */
+            name: string;
+        };
+        /** CtaTagSetDTO */
+        CtaTagSetDTO: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Tag Count
+             * @default 0
+             */
+            tag_count?: number;
+            /**
+             * Model Count
+             * @default 0
+             */
+            model_count?: number;
+        };
+        /** CtaTagSetUpdate */
+        CtaTagSetUpdate: {
+            /** Name */
+            name: string;
+        };
+        /** CtaTagUpdate */
+        CtaTagUpdate: {
+            /** Canonical Content */
+            canonical_content?: string | null;
+            /** Tag Type */
+            tag_type?: ("general" | "artist" | "copyright" | "character" | "meta" | "other") | null;
+            /** Popularity */
+            popularity?: number | null;
+            /** Tag Set Ids */
+            tag_set_ids?: string[] | null;
         };
         /**
          * OpenCV Inpaint
@@ -48939,6 +49656,685 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    get_cta_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaStatus"];
+                };
+            };
+        };
+    };
+    cta_autocomplete: {
+        parameters: {
+            query?: {
+                q?: string;
+                model_id?: string | null;
+                tag_filter?: ("artist" | "character" | "other") | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaAutocompleteCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cta_tags: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                tag_type?: ("general" | "artist" | "copyright" | "character" | "meta" | "other") | null;
+                tag_set_id?: string | null;
+                uncategorized?: boolean | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaTagPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cta_tag_sets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaTagSetDTO"][];
+                };
+            };
+        };
+    };
+    create_cta_tag_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaTagSetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaTagSetDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cta_syntax_profiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaSyntaxProfileDTO"][];
+                };
+            };
+        };
+    };
+    create_cta_syntax_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaSyntaxProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaSyntaxProfileDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cta_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaTagDetailDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_cta_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cta_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaTagUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaTagMutationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_mutate_cta_tags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaBulkTagRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaBulkResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_cta_tag_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cta_tag_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tag_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaTagSetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaTagSetDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_cta_syntax_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cta_syntax_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaSyntaxProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaSyntaxProfileDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cta_model_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaModelConfigDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_cta_model_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaModelConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaModelConfigDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cta_sample_csv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    stage_cta_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_stage_cta_import"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaImportStageDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_cta_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaImportMapping"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaImportPreviewDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_cta_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CtaImportCommitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CtaImportResultDTO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_cta_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -12,7 +12,7 @@ import { assert } from 'tsafe';
 import { type Language, type SystemState, zSystemState } from './types';
 
 const getInitialState = (): SystemState => ({
-  _version: 3,
+  _version: 4,
   shouldConfirmOnDelete: true,
   shouldAntialiasProgressImage: false,
   shouldConfirmOnNewSession: true,
@@ -28,6 +28,8 @@ const getInitialState = (): SystemState => ({
   shouldHighlightFocusedRegions: false,
   shouldUseMiddleClickToOpenInNewTab: false,
   prefersNumericAttentionWeights: false,
+  clipTagAutocompleteEnabled: false,
+  clipTagAutocompleteHotPrefix: null,
 });
 
 const slice = createSlice({
@@ -83,6 +85,12 @@ const slice = createSlice({
     setShouldUseMiddleClickToOpenInNewTab(state, action: PayloadAction<boolean>) {
       state.shouldUseMiddleClickToOpenInNewTab = action.payload;
     },
+    clipTagAutocompleteEnabledChanged: (state, action: PayloadAction<boolean>) => {
+      state.clipTagAutocompleteEnabled = action.payload;
+    },
+    clipTagAutocompleteHotPrefixChanged: (state, action: PayloadAction<'~' | '*' | null>) => {
+      state.clipTagAutocompleteHotPrefix = action.payload;
+    },
   },
 });
 
@@ -102,6 +110,8 @@ export const {
   setPrefersNumericAttentionStyle,
   setShouldHighlightFocusedRegions,
   setShouldUseMiddleClickToOpenInNewTab,
+  clipTagAutocompleteEnabledChanged,
+  clipTagAutocompleteHotPrefixChanged,
 } = slice.actions;
 
 export const systemSliceConfig: SliceConfig<typeof slice> = {
@@ -121,6 +131,11 @@ export const systemSliceConfig: SliceConfig<typeof slice> = {
       if (state._version === 2) {
         state.shouldUseMiddleClickToOpenInNewTab = false;
         state._version = 3;
+      }
+      if (state._version === 3) {
+        state.clipTagAutocompleteEnabled = false;
+        state.clipTagAutocompleteHotPrefix = null;
+        state._version = 4;
       }
       return zSystemState.parse(state);
     },
@@ -160,3 +175,7 @@ export const selectSystemShouldConfirmOnNewSession = createSystemSelector((syste
 export const selectSystemShouldShowInvocationProgressDetail = createSystemSelector(
   (system) => system.shouldShowInvocationProgressDetail
 );
+
+export const selectClipTagAutocompleteEnabled = (state: RootState) => state.system.clipTagAutocompleteEnabled;
+
+export const selectClipTagAutocompleteHotPrefix = (state: RootState) => state.system.clipTagAutocompleteHotPrefix;

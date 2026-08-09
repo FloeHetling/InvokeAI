@@ -12621,6 +12621,1108 @@
           }
         ]
       }
+    },
+    "/api/v1/clip_tag_autocomplete/status": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Get Cta Status",
+        "description": "Returns the CTA availability status.",
+        "operationId": "get_cta_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/autocomplete": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Cta Autocomplete",
+        "description": "Search for CTA tags, optionally paging through a category filter.",
+        "operationId": "cta_autocomplete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512,
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model Id"
+            }
+          },
+          {
+            "name": "tag_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["artist", "character", "other"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag Filter"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CtaAutocompleteCandidate"
+                  },
+                  "title": "Response Cta Autocomplete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/tags": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "List Cta Tags",
+        "description": "List CTA tags with server-side filtering and cursor pagination. Admin only.",
+        "operationId": "list_cta_tags",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "tag_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["general", "artist", "copyright", "character", "meta", "other"],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag Type"
+            }
+          },
+          {
+            "name": "tag_set_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag Set Id"
+            }
+          },
+          {
+            "name": "uncategorized",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uncategorized"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaTagPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/tag_sets": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "List Cta Tag Sets",
+        "description": "List CTA tag sets.",
+        "operationId": "list_cta_tag_sets",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CtaTagSetDTO"
+                  },
+                  "type": "array",
+                  "title": "Response List Cta Tag Sets"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Create Cta Tag Set",
+        "operationId": "create_cta_tag_set",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaTagSetCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaTagSetDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/syntax_profiles": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "List Cta Syntax Profiles",
+        "description": "List CTA syntax profiles.",
+        "operationId": "list_cta_syntax_profiles",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CtaSyntaxProfileDTO"
+                  },
+                  "type": "array",
+                  "title": "Response List Cta Syntax Profiles"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Create Cta Syntax Profile",
+        "operationId": "create_cta_syntax_profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaSyntaxProfileCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaSyntaxProfileDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/tags/i/{tag_id}": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Get Cta Tag",
+        "operationId": "get_cta_tag",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tag Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaTagDetailDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Update Cta Tag",
+        "operationId": "update_cta_tag",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tag Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaTagUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaTagMutationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Delete Cta Tag",
+        "operationId": "delete_cta_tag",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tag Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/tags/bulk": {
+      "post": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Bulk Mutate Cta Tags",
+        "operationId": "bulk_mutate_cta_tags",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaBulkTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaBulkResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/tag_sets/i/{tag_set_id}": {
+      "patch": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Update Cta Tag Set",
+        "operationId": "update_cta_tag_set",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag_set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tag Set Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaTagSetUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaTagSetDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Delete Cta Tag Set",
+        "operationId": "delete_cta_tag_set",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag_set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tag Set Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/syntax_profiles/i/{profile_id}": {
+      "patch": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Update Cta Syntax Profile",
+        "operationId": "update_cta_syntax_profile",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaSyntaxProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaSyntaxProfileDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Delete Cta Syntax Profile",
+        "operationId": "delete_cta_syntax_profile",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/models/i/{model_id}/config": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Get Cta Model Config",
+        "operationId": "get_cta_model_config",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaModelConfigDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Set Cta Model Config",
+        "operationId": "set_cta_model_config",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaModelConfigUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaModelConfigDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/imports/sample": {
+      "get": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Get Cta Sample Csv",
+        "operationId": "get_cta_sample_csv",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/imports/stage": {
+      "post": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Stage Cta Import",
+        "description": "Stage a CSV file for import. Returns detection results and sample.",
+        "operationId": "stage_cta_import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_stage_cta_import"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaImportStageDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/imports/i/{session_id}/prepare": {
+      "post": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Prepare Cta Import",
+        "description": "Prepare (full parse) a staged import.",
+        "operationId": "prepare_cta_import",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaImportMapping"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaImportPreviewDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/imports/i/{session_id}/commit": {
+      "post": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Commit Cta Import",
+        "description": "Commit a prepared import to the CTA database.",
+        "operationId": "commit_cta_import",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CtaImportCommitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CtaImportResultDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clip_tag_autocomplete/imports/i/{session_id}": {
+      "delete": {
+        "tags": ["clip_tag_autocomplete"],
+        "summary": "Cancel Cta Import",
+        "description": "Cancel and clean up an import session.",
+        "operationId": "cancel_cta_import",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -16129,6 +17231,18 @@
         "type": "object",
         "required": ["image"],
         "title": "Body_set_workflow_thumbnail"
+      },
+      "Body_stage_cta_import": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": ["file"],
+        "title": "Body_stage_cta_import"
       },
       "Body_star_images_in_list": {
         "properties": {
@@ -23456,6 +24570,1000 @@
         "output": {
           "$ref": "#/components/schemas/LatentsOutput"
         }
+      },
+      "CtaAutocompleteCandidate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "canonical_content": {
+            "type": "string",
+            "title": "Canonical Content"
+          },
+          "popularity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity"
+          },
+          "tag_type": {
+            "type": "string",
+            "enum": ["general", "artist", "copyright", "character", "meta", "other"],
+            "title": "Tag Type"
+          },
+          "rendered_content": {
+            "type": "string",
+            "title": "Rendered Content"
+          }
+        },
+        "type": "object",
+        "required": ["id", "canonical_content", "tag_type", "rendered_content"],
+        "title": "CtaAutocompleteCandidate"
+      },
+      "CtaBulkAddToSet": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "add_to_set",
+            "title": "Type"
+          },
+          "tag_set_id": {
+            "type": "string",
+            "title": "Tag Set Id"
+          }
+        },
+        "type": "object",
+        "required": ["type", "tag_set_id"],
+        "title": "CtaBulkAddToSet"
+      },
+      "CtaBulkDelete": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "delete",
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": ["type"],
+        "title": "CtaBulkDelete"
+      },
+      "CtaBulkFilterSelection": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "filter",
+            "title": "Mode"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/CtaTagFilter"
+          }
+        },
+        "type": "object",
+        "required": ["mode", "filter"],
+        "title": "CtaBulkFilterSelection"
+      },
+      "CtaBulkIdSelection": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "ids",
+            "title": "Mode"
+          },
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Ids"
+          }
+        },
+        "type": "object",
+        "required": ["mode", "ids"],
+        "title": "CtaBulkIdSelection"
+      },
+      "CtaBulkRemoveFromSet": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "remove_from_set",
+            "title": "Type"
+          },
+          "tag_set_id": {
+            "type": "string",
+            "title": "Tag Set Id"
+          }
+        },
+        "type": "object",
+        "required": ["type", "tag_set_id"],
+        "title": "CtaBulkRemoveFromSet"
+      },
+      "CtaBulkResult": {
+        "properties": {
+          "selected_count": {
+            "type": "integer",
+            "title": "Selected Count"
+          },
+          "affected_count": {
+            "type": "integer",
+            "title": "Affected Count"
+          },
+          "merged_count": {
+            "type": "integer",
+            "title": "Merged Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": ["selected_count", "affected_count"],
+        "title": "CtaBulkResult"
+      },
+      "CtaBulkSetType": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "set_type",
+            "title": "Type"
+          },
+          "tag_type": {
+            "type": "string",
+            "enum": ["general", "artist", "copyright", "character", "meta", "other"],
+            "title": "Tag Type"
+          }
+        },
+        "type": "object",
+        "required": ["type", "tag_type"],
+        "title": "CtaBulkSetType"
+      },
+      "CtaBulkTagRequest": {
+        "properties": {
+          "selection": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CtaBulkIdSelection"
+              },
+              {
+                "$ref": "#/components/schemas/CtaBulkFilterSelection"
+              }
+            ],
+            "title": "Selection",
+            "discriminator": {
+              "propertyName": "mode",
+              "mapping": {
+                "filter": "#/components/schemas/CtaBulkFilterSelection",
+                "ids": "#/components/schemas/CtaBulkIdSelection"
+              }
+            }
+          },
+          "operation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CtaBulkAddToSet"
+              },
+              {
+                "$ref": "#/components/schemas/CtaBulkRemoveFromSet"
+              },
+              {
+                "$ref": "#/components/schemas/CtaBulkSetType"
+              },
+              {
+                "$ref": "#/components/schemas/CtaBulkDelete"
+              }
+            ],
+            "title": "Operation",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "add_to_set": "#/components/schemas/CtaBulkAddToSet",
+                "delete": "#/components/schemas/CtaBulkDelete",
+                "remove_from_set": "#/components/schemas/CtaBulkRemoveFromSet",
+                "set_type": "#/components/schemas/CtaBulkSetType"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": ["selection", "operation"],
+        "title": "CtaBulkTagRequest"
+      },
+      "CtaImportCommitRequest": {
+        "properties": {
+          "destination": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CtaImportUncategorizedDestination"
+              },
+              {
+                "$ref": "#/components/schemas/CtaImportNewSetDestination"
+              },
+              {
+                "$ref": "#/components/schemas/CtaImportExistingSetDestination"
+              }
+            ],
+            "title": "Destination",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "existing_set": "#/components/schemas/CtaImportExistingSetDestination",
+                "new_set": "#/components/schemas/CtaImportNewSetDestination",
+                "uncategorized": "#/components/schemas/CtaImportUncategorizedDestination"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": ["destination"],
+        "title": "CtaImportCommitRequest"
+      },
+      "CtaImportExistingSetDestination": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "existing_set",
+            "title": "Type"
+          },
+          "tag_set_id": {
+            "type": "string",
+            "title": "Tag Set Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["merge", "replace"],
+            "title": "Mode",
+            "default": "merge"
+          }
+        },
+        "type": "object",
+        "required": ["type", "tag_set_id"],
+        "title": "CtaImportExistingSetDestination"
+      },
+      "CtaImportMapping": {
+        "properties": {
+          "delimiter": {
+            "type": "string",
+            "enum": [",", ";", "\t", "|"],
+            "title": "Delimiter"
+          },
+          "first_row_contains_column_names": {
+            "type": "boolean",
+            "title": "First Row Contains Column Names"
+          },
+          "tag_column": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tag Column"
+          },
+          "popularity_column": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity Column"
+          },
+          "type_column": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Column"
+          }
+        },
+        "type": "object",
+        "required": ["delimiter", "first_row_contains_column_names", "tag_column"],
+        "title": "CtaImportMapping"
+      },
+      "CtaImportNewSetDestination": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "new_set",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": ["type", "name"],
+        "title": "CtaImportNewSetDestination"
+      },
+      "CtaImportPreviewDTO": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "state": {
+            "type": "string",
+            "const": "prepared",
+            "title": "State"
+          },
+          "preview": {
+            "items": {
+              "$ref": "#/components/schemas/CtaImportPreviewRow"
+            },
+            "type": "array",
+            "title": "Preview"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/CtaImportSummaryDTO"
+          }
+        },
+        "type": "object",
+        "required": ["session_id", "state", "preview", "summary"],
+        "title": "CtaImportPreviewDTO"
+      },
+      "CtaImportPreviewRow": {
+        "properties": {
+          "canonical_content": {
+            "type": "string",
+            "title": "Canonical Content"
+          },
+          "popularity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity"
+          },
+          "tag_type": {
+            "type": "string",
+            "enum": ["general", "artist", "copyright", "character", "meta", "other"],
+            "title": "Tag Type"
+          }
+        },
+        "type": "object",
+        "required": ["canonical_content", "tag_type"],
+        "title": "CtaImportPreviewRow"
+      },
+      "CtaImportResultDTO": {
+        "properties": {
+          "new_tags": {
+            "type": "integer",
+            "title": "New Tags"
+          },
+          "existing_tags_merged": {
+            "type": "integer",
+            "title": "Existing Tags Merged"
+          },
+          "popularity_updated": {
+            "type": "integer",
+            "title": "Popularity Updated"
+          },
+          "type_conflicts_ignored": {
+            "type": "integer",
+            "title": "Type Conflicts Ignored"
+          },
+          "skipped_rows": {
+            "type": "integer",
+            "title": "Skipped Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_tags",
+          "existing_tags_merged",
+          "popularity_updated",
+          "type_conflicts_ignored",
+          "skipped_rows"
+        ],
+        "title": "CtaImportResultDTO"
+      },
+      "CtaImportStageDTO": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "detected_delimiter": {
+            "type": "string",
+            "enum": [",", ";", "\t", "|"],
+            "title": "Detected Delimiter"
+          },
+          "detected_header": {
+            "type": "boolean",
+            "title": "Detected Header"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "sample_rows": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Sample Rows"
+          },
+          "is_single_column": {
+            "type": "boolean",
+            "title": "Is Single Column"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "detected_delimiter",
+          "detected_header",
+          "columns",
+          "sample_rows",
+          "is_single_column"
+        ],
+        "title": "CtaImportStageDTO"
+      },
+      "CtaImportSummaryDTO": {
+        "properties": {
+          "rows_read": {
+            "type": "integer",
+            "title": "Rows Read"
+          },
+          "valid_rows": {
+            "type": "integer",
+            "title": "Valid Rows"
+          },
+          "skipped_rows": {
+            "type": "integer",
+            "title": "Skipped Rows"
+          },
+          "invalid_popularity_to_unknown": {
+            "type": "integer",
+            "title": "Invalid Popularity To Unknown"
+          },
+          "unknown_types_to_other": {
+            "type": "integer",
+            "title": "Unknown Types To Other"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows_read",
+          "valid_rows",
+          "skipped_rows",
+          "invalid_popularity_to_unknown",
+          "unknown_types_to_other"
+        ],
+        "title": "CtaImportSummaryDTO"
+      },
+      "CtaImportUncategorizedDestination": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "uncategorized",
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": ["type"],
+        "title": "CtaImportUncategorizedDestination"
+      },
+      "CtaModelConfigDTO": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "syntax_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syntax Profile Id"
+          },
+          "tag_set_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tag Set Ids"
+          }
+        },
+        "type": "object",
+        "required": ["model_id"],
+        "title": "CtaModelConfigDTO"
+      },
+      "CtaModelConfigUpdate": {
+        "properties": {
+          "syntax_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syntax Profile Id"
+          },
+          "tag_set_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tag Set Ids"
+          }
+        },
+        "type": "object",
+        "title": "CtaModelConfigUpdate"
+      },
+      "CtaStatus": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CtaStatusReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": ["available"],
+        "title": "CtaStatus"
+      },
+      "CtaStatusReason": {
+        "type": "string",
+        "enum": ["fts5_unavailable", "database_incompatible", "database_error"],
+        "title": "CtaStatusReason"
+      },
+      "CtaSyntaxProfileCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "spaces_to_underscores": {
+            "type": "boolean",
+            "title": "Spaces To Underscores",
+            "default": true
+          },
+          "escape_parentheses": {
+            "type": "boolean",
+            "title": "Escape Parentheses",
+            "default": true
+          },
+          "escape_colons": {
+            "type": "boolean",
+            "title": "Escape Colons",
+            "default": true
+          },
+          "append_type_parentheses": {
+            "type": "boolean",
+            "title": "Append Type Parentheses",
+            "default": false
+          },
+          "prefix_artist_with_by": {
+            "type": "boolean",
+            "title": "Prefix Artist With By",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "CtaSyntaxProfileCreate"
+      },
+      "CtaSyntaxProfileDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "spaces_to_underscores": {
+            "type": "boolean",
+            "title": "Spaces To Underscores",
+            "default": true
+          },
+          "escape_parentheses": {
+            "type": "boolean",
+            "title": "Escape Parentheses",
+            "default": true
+          },
+          "escape_colons": {
+            "type": "boolean",
+            "title": "Escape Colons",
+            "default": true
+          },
+          "append_type_parentheses": {
+            "type": "boolean",
+            "title": "Append Type Parentheses",
+            "default": false
+          },
+          "prefix_artist_with_by": {
+            "type": "boolean",
+            "title": "Prefix Artist With By",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "CtaSyntaxProfileDTO"
+      },
+      "CtaSyntaxProfileUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "spaces_to_underscores": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spaces To Underscores"
+          },
+          "escape_parentheses": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escape Parentheses"
+          },
+          "escape_colons": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escape Colons"
+          },
+          "append_type_parentheses": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Append Type Parentheses"
+          },
+          "prefix_artist_with_by": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefix Artist With By"
+          }
+        },
+        "type": "object",
+        "title": "CtaSyntaxProfileUpdate"
+      },
+      "CtaTagDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "canonical_content": {
+            "type": "string",
+            "title": "Canonical Content"
+          },
+          "popularity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity"
+          },
+          "tag_type": {
+            "type": "string",
+            "enum": ["general", "artist", "copyright", "character", "meta", "other"],
+            "title": "Tag Type"
+          }
+        },
+        "type": "object",
+        "required": ["id", "canonical_content", "tag_type"],
+        "title": "CtaTagDTO"
+      },
+      "CtaTagDetailDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "canonical_content": {
+            "type": "string",
+            "title": "Canonical Content"
+          },
+          "popularity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity"
+          },
+          "tag_type": {
+            "type": "string",
+            "enum": ["general", "artist", "copyright", "character", "meta", "other"],
+            "title": "Tag Type"
+          },
+          "tag_set_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tag Set Ids"
+          }
+        },
+        "type": "object",
+        "required": ["id", "canonical_content", "tag_type"],
+        "title": "CtaTagDetailDTO"
+      },
+      "CtaTagFilter": {
+        "properties": {
+          "q": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "tag_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["general", "artist", "copyright", "character", "meta", "other"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Type"
+          },
+          "tag_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Set Id"
+          },
+          "uncategorized": {
+            "type": "boolean",
+            "title": "Uncategorized",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "CtaTagFilter"
+      },
+      "CtaTagMutationResult": {
+        "properties": {
+          "tag": {
+            "$ref": "#/components/schemas/CtaTagDetailDTO"
+          },
+          "merged": {
+            "type": "boolean",
+            "title": "Merged",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["tag"],
+        "title": "CtaTagMutationResult"
+      },
+      "CtaTagPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CtaTagDTO"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": ["items", "total_count"],
+        "title": "CtaTagPage"
+      },
+      "CtaTagSetCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "CtaTagSetCreate"
+      },
+      "CtaTagSetDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tag_count": {
+            "type": "integer",
+            "title": "Tag Count",
+            "default": 0
+          },
+          "model_count": {
+            "type": "integer",
+            "title": "Model Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "CtaTagSetDTO"
+      },
+      "CtaTagSetUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "CtaTagSetUpdate"
+      },
+      "CtaTagUpdate": {
+        "properties": {
+          "canonical_content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Content"
+          },
+          "tag_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["general", "artist", "copyright", "character", "meta", "other"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Type"
+          },
+          "popularity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity"
+          },
+          "tag_set_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Set Ids"
+          }
+        },
+        "type": "object",
+        "title": "CtaTagUpdate"
       },
       "CvInpaintInvocation": {
         "category": "inpaint",
