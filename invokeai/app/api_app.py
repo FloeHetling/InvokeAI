@@ -27,6 +27,7 @@ from invokeai.app.api.routers import (
     board_images,
     boards,
     client_state,
+    clip_tag_autocomplete,
     custom_nodes,
     gallery,
     image_moves,
@@ -607,6 +608,7 @@ app.include_router(system_prompts.system_prompts_router, prefix="/api")
 app.include_router(client_state.client_state_router, prefix="/api")
 app.include_router(recall_parameters.recall_parameters_router, prefix="/api")
 app.include_router(custom_nodes.custom_nodes_router, prefix="/api")
+app.include_router(clip_tag_autocomplete.clip_tag_autocomplete_router, prefix="/api")
 
 app.openapi = get_openapi_func(app)
 
