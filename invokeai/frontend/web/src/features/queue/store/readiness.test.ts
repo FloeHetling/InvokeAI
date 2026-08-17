@@ -694,6 +694,107 @@ describe('FLUX.1 readiness – self-contained SDNQ pipeline', () => {
   });
 });
 
+const chromaPipelineModel = {
+  key: 'chroma-pipeline',
+  hash: 'chroma-pipeline-hash',
+  name: 'Chroma1-HD Diffusers',
+  base: 'chroma',
+  type: 'main',
+  format: 'diffusers',
+  submodels: {
+    transformer: {},
+    vae: {},
+    text_encoder: {},
+    tokenizer: {},
+  },
+} as unknown as MainModelConfig;
+
+const chromaCheckpointModel = {
+  key: 'chroma-checkpoint',
+  hash: 'chroma-checkpoint-hash',
+  name: 'Chroma1-HD',
+  base: 'chroma',
+  type: 'main',
+  format: 'checkpoint',
+} as unknown as MainModelConfig;
+
+const buildChromaGenerateTabArg = (model: MainModelConfig, withComponents: boolean) => {
+  const arg = buildGenerateTabArg({ model });
+  arg.params = {
+    ...arg.params,
+    t5EncoderModel: withComponents ? { key: 't5' } : null,
+    fluxVAE: withComponents ? { key: 'vae' } : null,
+  } as unknown as ParamsState;
+  return arg;
+};
+
+const chromaComponentReasons = (reasons: { content: string }[]) =>
+  reasons.filter((r) => r.content.includes('noT5EncoderModelSelected') || r.content.includes('noFLUXVAEModelSelected'));
+
+describe('Chroma readiness', () => {
+  it('does not demand standalone components for a complete Diffusers pipeline', () => {
+    const reasons = getReasonsWhyCannotEnqueueGenerateTab(buildChromaGenerateTabArg(chromaPipelineModel, false));
+
+    expect(chromaComponentReasons(reasons)).toEqual([]);
+  });
+
+  it('demands T5 and FLUX VAE for a single-file checkpoint', () => {
+    const reasons = getReasonsWhyCannotEnqueueGenerateTab(buildChromaGenerateTabArg(chromaCheckpointModel, false));
+
+    expect(chromaComponentReasons(reasons)).toHaveLength(2);
+  });
+
+  it('accepts a single-file checkpoint with T5 and FLUX VAE selected', () => {
+    const reasons = getReasonsWhyCannotEnqueueGenerateTab(buildChromaGenerateTabArg(chromaCheckpointModel, true));
+
+    expect(chromaComponentReasons(reasons)).toEqual([]);
+  });
+
+  it('requires canvas dimensions to be multiples of 16', () => {
+    const arg = buildCanvasTabArg({ model: chromaPipelineModel });
+    arg.canvas.bbox.rect = { width: 1030, height: 1025 };
+
+    const reasons = getReasonsWhyCannotEnqueueCanvasTab(arg as never);
+
+    expect(reasons.filter((r) => r.content.includes('modelIncompatibleBbox'))).toHaveLength(2);
+  });
+
+  it('blocks stale enabled reference images instead of silently ignoring them', () => {
+    const arg = buildChromaGenerateTabArg(chromaPipelineModel, false);
+    arg.refImages = {
+      ...baseRefImages,
+      entities: [
+        {
+          id: 'reference',
+          isEnabled: true,
+          config: { type: 'ip_adapter', image: null, model: null },
+        },
+      ],
+    } as unknown as RefImagesState;
+
+    const reasons = getReasonsWhyCannotEnqueueGenerateTab(arg);
+
+    expect(reasons.some((r) => r.content.includes('unsupportedModel'))).toBe(true);
+  });
+
+  it('blocks enabled control layers instead of silently ignoring them', () => {
+    const arg = buildCanvasTabArg({ model: chromaPipelineModel });
+    arg.canvas.controlLayers.entities = [
+      {
+        id: 'control',
+        isEnabled: true,
+        type: 'control_layer',
+        objects: [{}],
+        controlAdapter: { model: { base: 'chroma' } },
+      },
+    ] as never;
+
+    const reasons = getReasonsWhyCannotEnqueueCanvasTab(arg as never);
+
+    expect(reasons.some((r) => r.content.includes('unsupportedModel'))).toBe(true);
+  });
+});
+
 // --- Wan 2.2 -----------------------------------------------------------------
 //
 // Regression cover for #9463: single-file Wan mains are transformer-only and need a

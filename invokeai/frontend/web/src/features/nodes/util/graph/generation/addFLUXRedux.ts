@@ -39,12 +39,8 @@ export const addFLUXReduxes = ({ entities, g, collector, model }: AddFLUXReduxAr
 };
 
 /**
- * To fine-tune the image influence, edit this object.
- * - downsampling_factor: 1 to 9, where 1 is the most image influence and 9 is the least. 1 is FLUX redux in its original form.
- * - downsampling_function: the function used to downsample the image. Defaults to 'area'. Dunno about how it affects the image.
- * - weight: 0 to 1. the conditioning is multiplied by the square of this value. 1 means no change.
- *
- * See invokeai/app/invocations/flux_redux.py for more details.
+ * Preset mapping used by regional Redux. Global Redux reference images store raw
+ * downsampling factor and weight so users can tune both values independently.
  */
 export const IMAGE_INFLUENCE_TO_SETTINGS: Record<
   FLUXReduxImageInfluence,
@@ -89,7 +85,8 @@ const addFLUXRedux = (id: string, ipAdapter: FLUXReduxConfig, g: Graph, collecto
     image: {
       image_name: image.crop?.image.image_name ?? image.original.image.image_name,
     },
-    ...IMAGE_INFLUENCE_TO_SETTINGS[ipAdapter.imageInfluence ?? 'highest'],
+    downsampling_factor: ipAdapter.downsamplingFactor,
+    weight: ipAdapter.weight,
   });
 
   g.addEdge(node, 'redux_cond', collector, 'item');

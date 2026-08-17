@@ -1,3 +1,4 @@
+import { isControlAdapterModelCompatible } from 'features/controlLayers/store/fluxControlNet';
 import type {
   CanvasControlLayerState,
   CanvasInpaintMaskState,
@@ -5,7 +6,7 @@ import type {
   CanvasRegionalGuidanceState,
   RefImageState,
 } from 'features/controlLayers/store/types';
-import { isKrea2ReferenceImageConfig } from 'features/controlLayers/store/types';
+import { isFLUXReduxConfig, isKrea2ReferenceImageConfig } from 'features/controlLayers/store/types';
 import type { ModelIdentifierField } from 'features/nodes/types/common';
 import {
   type AnyModelConfigWithExternal,
@@ -51,7 +52,7 @@ export const getRegionalGuidanceWarnings = (
   }
 
   if (model) {
-    if (model.base === 'sd-3' || model.base === 'sd-2') {
+    if (model.base === 'chroma' || model.base === 'sd-3' || model.base === 'sd-2') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
       return warnings;
@@ -159,6 +160,17 @@ export const areBasesCompatibleForRefImage = (
   if (!first || !second) {
     return false;
   }
+
+  // Chroma consumes FLUX Redux embeddings through the shared
+  // RegionalPromptingExtension. The Redux side model therefore intentionally
+  // has base='flux' while the main generation model has base='chroma'.
+  if (
+    (first.base === 'chroma' && second.base === 'flux' && second.type === 'flux_redux') ||
+    (second.base === 'chroma' && first.base === 'flux' && first.type === 'flux_redux')
+  ) {
+    return true;
+  }
+
   if (first.base !== second.base) {
     return false;
   }
@@ -188,13 +200,19 @@ export const getGlobalReferenceImageWarnings = (
       return warnings;
     }
 
-    if (model.base === 'sd-3' || model.base === 'sd-2' || model.base === 'anima') {
+    const { config } = entity;
+    const isChromaFluxRedux = model.base === 'chroma' && isFLUXReduxConfig(config);
+
+    if (
+      (model.base === 'chroma' && !isChromaFluxRedux) ||
+      model.base === 'sd-3' ||
+      model.base === 'sd-2' ||
+      model.base === 'anima'
+    ) {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
       return warnings;
     }
-
-    const { config } = entity;
 
     // FLUX.2, Qwen Image Edit, Wan and Krea-2 reference images don't require a model - it's built-in
     if (
@@ -273,7 +291,11 @@ export const getControlLayerWarnings = (
     // No model selected
     warnings.push(WARNINGS.CONTROL_ADAPTER_NO_MODEL_SELECTED);
   } else if (model) {
-    if (model.base === 'sd-3' || model.base === 'sd-2') {
+    const isChromaFluxControlNet =
+      model.base === 'chroma' &&
+      entity.controlAdapter.type === 'controlnet' &&
+      entity.controlAdapter.model.base === 'flux';
+    if ((model.base === 'chroma' && !isChromaFluxControlNet) || model.base === 'sd-3' || model.base === 'sd-2') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
     } else if (model.base === 'anima' && entity.controlAdapter.type !== 'anima_lllite') {
@@ -281,7 +303,7 @@ export const getControlLayerWarnings = (
       // 'controlnet' before the anima_lllite adapter type existed - the graph builder ignores them, so they must
       // warn instead of silently no-oping.
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
-    } else if (entity.controlAdapter.model.base !== model.base) {
+    } else if (!isControlAdapterModelCompatible(model.base, entity.controlAdapter.model)) {
       // Supported model architecture but doesn't match
       warnings.push(WARNINGS.CONTROL_ADAPTER_INCOMPATIBLE_BASE_MODEL);
     } else if (

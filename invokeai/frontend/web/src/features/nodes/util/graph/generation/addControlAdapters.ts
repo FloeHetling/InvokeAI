@@ -1,6 +1,7 @@
 import { logger } from 'app/logging/logger';
 import { withResultAsync } from 'common/util/result';
 import type { CanvasManager } from 'features/controlLayers/konva/CanvasManager';
+import { getInstantXControlModeForGraph } from 'features/controlLayers/store/fluxControlNet';
 import type { CanvasControlLayerState, Rect } from 'features/controlLayers/store/types';
 import { getControlLayerWarnings } from 'features/controlLayers/store/validators';
 import type { Graph } from 'features/nodes/util/graph/generation/Graph';
@@ -154,7 +155,7 @@ const addControlNetToGraph = (
 ) => {
   const { id, controlAdapter } = layer;
   assert(controlAdapter.type === 'controlnet');
-  const { beginEndStepPct, model, weight, controlMode } = controlAdapter;
+  const { beginEndStepPct, model, weight, controlMode, fluxControlType } = controlAdapter;
   assert(model !== null);
   const { image_name } = imageDTO;
 
@@ -164,6 +165,7 @@ const addControlNetToGraph = (
     begin_step_percent: beginEndStepPct[0],
     end_step_percent: beginEndStepPct[1],
     control_mode: model.base === 'flux' ? undefined : controlMode,
+    instantx_control_mode: model.base === 'flux' ? getInstantXControlModeForGraph(fluxControlType) : undefined,
     resize_mode: 'just_resize',
     control_model: model,
     control_weight: weight,

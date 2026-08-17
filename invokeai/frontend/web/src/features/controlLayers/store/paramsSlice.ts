@@ -35,6 +35,7 @@ import type {
   ParameterCanvasCoherenceMode,
   ParameterCFGRescaleMultiplier,
   ParameterCFGScale,
+  ParameterChromaScheduler,
   ParameterCLIPEmbedModel,
   ParameterCLIPGEmbedModel,
   ParameterCLIPLEmbedModel,
@@ -93,6 +94,9 @@ const slice = createSlice({
     },
     setFluxScheduler: (state, action: PayloadAction<'euler' | 'heun' | 'lcm'>) => {
       state.fluxScheduler = action.payload;
+    },
+    setChromaScheduler: (state, action: PayloadAction<ParameterChromaScheduler>) => {
+      state.chromaScheduler = action.payload;
     },
     setFluxDypePreset: (state, action: PayloadAction<ParameterFluxDypePreset>) => {
       state.fluxDypePreset = action.payload;
@@ -866,6 +870,7 @@ export const {
   setGuidance,
   setScheduler,
   setFluxScheduler,
+  setChromaScheduler,
   setFluxDypePreset,
   setFluxDypeScale,
   setFluxDypeExponent,
@@ -1200,6 +1205,7 @@ const createParamsSelector = <T>(selector: Selector<ParamsState, T>) => createSe
 export const selectBase = createParamsSelector((params) => params.model?.base);
 export const selectIsSDXL = createParamsSelector((params) => params.model?.base === 'sdxl');
 export const selectIsFLUX = createParamsSelector((params) => params.model?.base === 'flux');
+export const selectIsChroma = createParamsSelector((params) => params.model?.base === 'chroma');
 export const selectIsSD3 = createParamsSelector((params) => params.model?.base === 'sd-3');
 export const selectIsCogView4 = createParamsSelector((params) => params.model?.base === 'cogview4');
 export const selectIsZImage = createParamsSelector((params) => params.model?.base === 'z-image');
@@ -1382,6 +1388,7 @@ export const selectSeedControl = createSelector(selectModelConfig, (modelConfig)
 });
 export const selectScheduler = createParamsSelector((params) => params.scheduler);
 export const selectFluxScheduler = createParamsSelector((params) => params.fluxScheduler);
+export const selectChromaScheduler = createParamsSelector((params) => params.chromaScheduler);
 export const selectFluxDypePreset = createParamsSelector((params) => params.fluxDypePreset);
 export const selectFluxDypeScale = createParamsSelector((params) => params.fluxDypeScale);
 export const selectFluxDypeExponent = createParamsSelector((params) => params.fluxDypeExponent);

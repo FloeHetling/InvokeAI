@@ -19,12 +19,8 @@ import {
   widthChanged,
 } from 'features/controlLayers/store/paramsSlice';
 import { refImagesRecalled } from 'features/controlLayers/store/refImagesSlice';
-import type {
-  ControlModeV2,
-  FLUXReduxImageInfluence,
-  IPMethodV2,
-  RefImageState,
-} from 'features/controlLayers/store/types';
+import type { ControlModeV2, IPMethodV2, RefImageState } from 'features/controlLayers/store/types';
+import { zRefImageState } from 'features/controlLayers/store/types';
 import { getControlLayerState, getReferenceImageState } from 'features/controlLayers/store/util';
 import { $nodeExecutionStates, upsertExecutionState } from 'features/nodes/hooks/useNodeExecutionState';
 import { fieldValueReset } from 'features/nodes/store/nodesSlice';
@@ -817,7 +813,7 @@ export const setEventListeners = ({ socket, store, setIsConnected }: SetEventLis
                   const refImageState = getReferenceImageState(`recalled-ref-image-${Date.now()}-${Math.random()}`, {
                     isEnabled: true,
                     config: isFluxRedux
-                      ? {
+                      ? zRefImageState.shape.config.parse({
                           type: 'flux_redux',
                           image: imageData,
                           model: {
@@ -827,8 +823,9 @@ export const setEventListeners = ({ socket, store, setIsConnected }: SetEventLis
                             base: modelConfig.base,
                             type: modelConfig.type,
                           },
-                          imageInfluence: (adapterConfig.image_influence as FLUXReduxImageInfluence) || 'highest',
-                        }
+                          imageInfluence: adapterConfig.image_influence || 'highest',
+                          weight: typeof adapterConfig.weight === 'number' ? adapterConfig.weight : undefined,
+                        })
                       : {
                           type: 'ip_adapter',
                           image: imageData,

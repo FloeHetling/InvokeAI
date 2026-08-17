@@ -13,6 +13,7 @@ import type {
   Gemini2_5ModelConfig,
   IPAdapterModelConfig,
 } from 'services/api/types';
+import { isFluxReduxModelConfig } from 'services/api/types';
 
 type Props = {
   modelKey: string | null;
@@ -30,7 +31,14 @@ export const RefImageModel = memo(({ modelKey, onChangeModel }: Props) => {
   const { t } = useTranslation();
   const mainModelConfig = useAppSelector(selectMainModelConfig);
   const [modelConfigs, { isLoading }] = useGlobalReferenceImageModels();
-  const selectedModel = useMemo(() => modelConfigs.find((m) => m.key === modelKey), [modelConfigs, modelKey]);
+  const compatibleModelConfigs = useMemo(
+    () => (mainModelConfig?.base === 'chroma' ? modelConfigs.filter(isFluxReduxModelConfig) : modelConfigs),
+    [mainModelConfig?.base, modelConfigs]
+  );
+  const selectedModel = useMemo(
+    () => compatibleModelConfigs.find((m) => m.key === modelKey),
+    [compatibleModelConfigs, modelKey]
+  );
 
   const _onChangeModel = useCallback(
     (
@@ -65,7 +73,7 @@ export const RefImageModel = memo(({ modelKey, onChangeModel }: Props) => {
   );
 
   const { options, value, onChange, noOptionsMessage } = useGroupedModelCombobox({
-    modelConfigs,
+    modelConfigs: compatibleModelConfigs,
     onChange: _onChangeModel,
     selectedModel,
     getIsDisabled,

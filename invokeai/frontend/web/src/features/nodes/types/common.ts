@@ -79,6 +79,9 @@ export type SchedulerField = z.infer<typeof zSchedulerField>;
 // Flux-specific scheduler options (Flow Matching schedulers)
 export const zFluxSchedulerField = z.enum(['euler', 'heun', 'lcm']);
 
+// Chroma-specific scheduler options. CFG++ is intentionally not exposed to generic FLUX yet.
+export const zChromaSchedulerField = z.enum(['euler', 'euler_cfg_pp_beta', 'heun', 'lcm']);
+
 // Z-Image scheduler options (Flow Matching schedulers)
 // Note: LCM is only supported for Z-Image Turbo, not for Z-Image Base (undistilled)
 export const zZImageSchedulerField = z.enum(['euler', 'heun', 'lcm']);
@@ -110,6 +113,7 @@ export const zBaseModelType = z.enum([
   'sdxl',
   'sdxl-refiner',
   'flux',
+  'chroma',
   'flux2',
   'cogview4',
   'qwen-image',
@@ -129,6 +133,7 @@ export const zMainModelBase = z.enum([
   'sd-3',
   'sdxl',
   'flux',
+  'chroma',
   'flux2',
   'cogview4',
   'qwen-image',

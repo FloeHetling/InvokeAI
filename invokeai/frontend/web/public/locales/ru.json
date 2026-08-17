@@ -3083,6 +3083,12 @@
             "high": "Высокое",
             "highest": "Наивысшее"
         },
+        "fluxReduxSettings": {
+            "detail": "Детализация",
+            "strength": "Сила",
+            "moreDetail": "Больше деталей",
+            "lessDetail": "Меньше деталей"
+        },
         "gradient": {
             "linear": "Линейный",
             "radial": "Радиальный",

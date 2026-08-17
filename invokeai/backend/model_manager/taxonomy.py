@@ -46,6 +46,8 @@ class BaseModelType(str, Enum):
     """Indicates the model is associated with the Stable Diffusion XL Refiner model architecture."""
     Flux = "flux"
     """Indicates the model is associated with FLUX.1 model architecture, including FLUX Dev, Schnell and Fill."""
+    Chroma = "chroma"
+    """Indicates the model is associated with the Chroma image generation architecture."""
     Flux2 = "flux2"
     """Indicates the model is associated with FLUX.2 model architecture, including FLUX.2 Klein and FLUX.2 [dev]."""
     CogView4 = "cogview4"

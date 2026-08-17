@@ -5,6 +5,7 @@ import { createMemoizedSelector } from 'app/store/createMemoizedSelector';
 import { useAppSelector } from 'app/store/storeHooks';
 import {
   selectIsAnima,
+  selectIsChroma,
   selectIsErnieImage,
   selectIsExternal,
   selectIsFLUX,
@@ -68,6 +69,7 @@ export const AdvancedSettingsAccordion = memo(() => {
   const vaeKey = useAppSelector(selectVAEKey);
   const { currentData: vaeConfig } = useGetModelConfigQuery(vaeKey ?? skipToken);
   const isFLUX = useAppSelector(selectIsFLUX);
+  const isChroma = useAppSelector(selectIsChroma);
   const isFlux2 = useAppSelector(selectIsFlux2);
   const isFlux2Dev = useAppSelector(selectIsFlux2Dev);
   const isSD3 = useAppSelector(selectIsSD3);
@@ -83,11 +85,11 @@ export const AdvancedSettingsAccordion = memo(() => {
   const selectBadges = useMemo(
     () =>
       createMemoizedSelector(
-        [selectParamsSlice, selectIsFLUX, selectIsFlux2, selectIsKrea2, selectIsIdeogram4],
-        (params, isFLUX, isFlux2, isKrea2, isIdeogram4) => {
+        [selectParamsSlice, selectIsFLUX, selectIsChroma, selectIsFlux2, selectIsKrea2, selectIsIdeogram4],
+        (params, isFLUX, isChroma, isFlux2, isKrea2, isIdeogram4) => {
           const badges: (string | number)[] = [];
           // FLUX.2 has VAE built into main model - no badge needed
-          if (isFLUX && !isFlux2) {
+          if ((isFLUX || isChroma) && !isFlux2) {
             if (vaeConfig) {
               let vaeBadge = vaeConfig.name;
               if (params.vaePrecision === 'fp16') {
@@ -142,11 +144,12 @@ export const AdvancedSettingsAccordion = memo(() => {
       <Flex gap={4} alignItems="center" p={4} flexDir="column" data-testid="advanced-settings-accordion">
         {!isZImage && !isAnima && !isFlux2 && !isQwenImage && !isErnieImage && !isKrea2 && !isWan && !isIdeogram4 && (
           <Flex gap={4} w="full">
-            {isFLUX ? <ParamFLUXVAEModelSelect /> : <ParamVAEModelSelect />}
-            {!isFLUX && !isSD3 && <ParamVAEPrecision />}
+            {isFLUX || isChroma ? <ParamFLUXVAEModelSelect /> : <ParamVAEModelSelect />}
+            {!isFLUX && !isChroma && !isSD3 && <ParamVAEPrecision />}
           </Flex>
         )}
         {!isFLUX &&
+          !isChroma &&
           !isFlux2 &&
           !isSD3 &&
           !isZImage &&
@@ -181,6 +184,11 @@ export const AdvancedSettingsAccordion = memo(() => {
           <FormControlGroup>
             <ParamT5EncoderModelSelect />
             <ParamCLIPEmbedModelSelect />
+          </FormControlGroup>
+        )}
+        {isChroma && (
+          <FormControlGroup>
+            <ParamT5EncoderModelSelect />
           </FormControlGroup>
         )}
         {isFlux2 && !isFlux2Dev && (

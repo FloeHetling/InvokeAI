@@ -8,6 +8,7 @@ import { merge } from 'es-toolkit/compat';
 import { logout } from 'features/auth/store/authSlice';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { canvasReset } from 'features/controlLayers/store/actions';
+import { getDefaultFluxControlNetControlType } from 'features/controlLayers/store/fluxControlNet';
 import { aspectRatioIdChanged, modelChanged, resolutionPresetSelected } from 'features/controlLayers/store/paramsSlice';
 import {
   selectAllEntities,
@@ -73,6 +74,7 @@ import type {
   EntityMovedToPayload,
   EntityRasterizedPayload,
   EntityShapeAddedPayload,
+  FluxControlNetControlType,
   IPMethodV2,
   T2IAdapterConfig,
   ZImageControlConfig,
@@ -96,8 +98,7 @@ import {
   initialAnimaLLLite,
   initialControlLoRA,
   initialControlNet,
-  initialFLUXRedux,
-  initialIPAdapter,
+  initialRegionalGuidanceFLUXRedux,
   initialRegionalGuidanceIPAdapter,
   initialT2IAdapter,
   initialZImageControl,
@@ -608,6 +609,9 @@ const slice = createSlice({
       }
       if (!modelConfig) {
         layer.controlAdapter.model = null;
+        if (layer.controlAdapter.type === 'controlnet') {
+          layer.controlAdapter.fluxControlType = null;
+        }
         return;
       }
       layer.controlAdapter.model = zModelIdentifierField.parse(modelConfig);
@@ -715,6 +719,9 @@ const slice = createSlice({
         default:
           break;
       }
+      if (layer.controlAdapter.type === 'controlnet') {
+        layer.controlAdapter.fluxControlType = getDefaultFluxControlNetControlType(modelConfig);
+      }
     },
     controlLayerControlModeChanged: (
       state,
@@ -726,6 +733,17 @@ const slice = createSlice({
         return;
       }
       layer.controlAdapter.controlMode = controlMode;
+    },
+    controlLayerFluxControlTypeChanged: (
+      state,
+      action: PayloadAction<EntityIdentifierPayload<{ fluxControlType: FluxControlNetControlType }, 'control_layer'>>
+    ) => {
+      const { entityIdentifier, fluxControlType } = action.payload;
+      const layer = selectEntity(state, entityIdentifier);
+      if (!layer || layer.controlAdapter.type !== 'controlnet') {
+        return;
+      }
+      layer.controlAdapter.fluxControlType = fluxControlType;
     },
     controlLayerWeightChanged: (
       state,
@@ -1025,7 +1043,7 @@ const slice = createSlice({
       if (isRegionalGuidanceIPAdapterConfig(referenceImage.config) && isFluxReduxModelConfig(modelConfig)) {
         // Switching from ip_adapter to flux_redux
         referenceImage.config = {
-          ...initialFLUXRedux,
+          ...initialRegionalGuidanceFLUXRedux,
           image: referenceImage.config.image,
           model: zModelIdentifierField.parse(modelConfig),
         };
@@ -1035,7 +1053,7 @@ const slice = createSlice({
       if (isRegionalGuidanceFLUXReduxConfig(referenceImage.config) && isIPAdapterModelConfig(modelConfig)) {
         // Switching from flux_redux to ip_adapter
         referenceImage.config = {
-          ...initialIPAdapter,
+          ...initialRegionalGuidanceIPAdapter,
           image: referenceImage.config.image,
           model: zModelIdentifierField.parse(modelConfig),
         };
@@ -1990,6 +2008,7 @@ export const {
   controlLayerConvertedToRegionalGuidance,
   controlLayerModelChanged,
   controlLayerControlModeChanged,
+  controlLayerFluxControlTypeChanged,
   controlLayerWeightChanged,
   controlLayerBeginEndStepPctChanged,
   controlLayerWithTransparencyEffectToggled,

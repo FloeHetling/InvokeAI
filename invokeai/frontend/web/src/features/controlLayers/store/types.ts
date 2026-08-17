@@ -6,6 +6,7 @@ import {
   zParameterCanvasCoherenceMode,
   zParameterCFGRescaleMultiplier,
   zParameterCFGScale,
+  zParameterChromaScheduler,
   zParameterCLIPEmbedModel,
   zParameterCLIPGEmbedModel,
   zParameterCLIPLEmbedModel,
@@ -99,6 +100,22 @@ const zBeginEndStepPct = z
 const zControlModeV2 = z.enum(['balanced', 'more_prompt', 'more_control', 'unbalanced']);
 export type ControlModeV2 = z.infer<typeof zControlModeV2>;
 export const isControlModeV2 = (v: unknown): v is ControlModeV2 => zControlModeV2.safeParse(v).success;
+
+const zFluxControlNetControlTypeKey = z.enum([
+  'canny',
+  'tile',
+  'depth',
+  'blur',
+  'pose',
+  'gray',
+  'low_quality',
+  'soft_edge',
+]);
+const zFluxControlNetControlType = z.object({
+  key: zFluxControlNetControlTypeKey,
+  instantxControlMode: z.number().int().gte(0).nullable(),
+});
+export type FluxControlNetControlType = z.infer<typeof zFluxControlNetControlType>;
 
 const zCLIPVisionModelV2 = z.enum(['ViT-H', 'ViT-G', 'ViT-L']);
 export type CLIPVisionModelV2 = z.infer<typeof zCLIPVisionModelV2>;
@@ -397,9 +414,43 @@ const zFLUXReduxConfig = z.object({
   type: z.literal('flux_redux'),
   image: zCroppableImageWithDims.nullable(),
   model: zModelIdentifierField.nullable(),
-  imageInfluence: zFLUXReduxImageInfluence.default('highest'),
+  downsamplingFactor: z.number().int().gte(1).lte(9).default(2),
+  weight: z.number().gte(0).lte(1).default(1),
 });
 export type FLUXReduxConfig = z.infer<typeof zFLUXReduxConfig>;
+
+const LEGACY_FLUX_REDUX_IMAGE_INFLUENCE_TO_DOWNSAMPLING_FACTOR: Record<FLUXReduxImageInfluence, number> = {
+  lowest: 5,
+  low: 4,
+  medium: 3,
+  high: 2,
+  highest: 1,
+};
+
+const zLegacyFLUXReduxConfig = z
+  .object({
+    type: z.literal('flux_redux'),
+    imageInfluence: zFLUXReduxImageInfluence.optional(),
+    downsamplingFactor: z.number().optional(),
+    weight: z.number().optional(),
+  })
+  .passthrough();
+
+const migrateLegacyFLUXReduxConfig = (value: unknown): unknown => {
+  const result = zLegacyFLUXReduxConfig.safeParse(value);
+  if (!result.success || result.data.imageInfluence === undefined) {
+    return value;
+  }
+
+  const { imageInfluence, ...config } = result.data;
+  return {
+    ...config,
+    downsamplingFactor:
+      config.downsamplingFactor ?? LEGACY_FLUX_REDUX_IMAGE_INFLUENCE_TO_DOWNSAMPLING_FACTOR[imageInfluence],
+    weight: config.weight ?? 1,
+  };
+};
+
 const zRegionalGuidanceFLUXReduxConfig = z.object({
   type: z.literal('flux_redux'),
   image: zImageWithDims.nullable(),
@@ -448,6 +499,19 @@ const zKrea2ReferenceImageConfig = z.object({
 });
 export type Krea2ReferenceImageConfig = z.infer<typeof zKrea2ReferenceImageConfig>;
 
+const zRefImageConfig = z.preprocess(
+  migrateLegacyFLUXReduxConfig,
+  z.discriminatedUnion('type', [
+    zIPAdapterConfig,
+    zFLUXReduxConfig,
+    zFluxKontextReferenceImageConfig,
+    zFlux2ReferenceImageConfig,
+    zQwenImageReferenceImageConfig,
+    zWanReferenceImageConfig,
+    zKrea2ReferenceImageConfig,
+  ])
+);
+
 const zCanvasEntityBase = z.object({
   id: zId,
   name: zName,
@@ -458,15 +522,7 @@ const zCanvasEntityBase = z.object({
 export const zRefImageState = z.object({
   id: zId,
   isEnabled: z.boolean().default(true),
-  config: z.discriminatedUnion('type', [
-    zIPAdapterConfig,
-    zFLUXReduxConfig,
-    zFluxKontextReferenceImageConfig,
-    zFlux2ReferenceImageConfig,
-    zQwenImageReferenceImageConfig,
-    zWanReferenceImageConfig,
-    zKrea2ReferenceImageConfig,
-  ]),
+  config: zRefImageConfig,
 });
 export type RefImageState = z.infer<typeof zRefImageState>;
 
@@ -542,6 +598,7 @@ const zControlNetConfig = z.object({
   weight: z.number().gte(-1).lte(2),
   beginEndStepPct: zBeginEndStepPct,
   controlMode: zControlModeV2,
+  fluxControlType: zFluxControlNetControlType.nullable().default(null),
 });
 export type ControlNetConfig = z.infer<typeof zControlNetConfig>;
 
@@ -858,6 +915,7 @@ export const zParamsState = z.object({
   iterations: z.number(),
   scheduler: zParameterScheduler,
   fluxScheduler: zParameterFluxScheduler,
+  chromaScheduler: zParameterChromaScheduler.default('euler'),
   fluxDypePreset: zParameterFluxDypePreset,
   fluxDypeScale: zParameterFluxDypeScale,
   fluxDypeExponent: zParameterFluxDypeExponent,
@@ -1002,6 +1060,7 @@ export const getInitialParamsState = (): ParamsState => ({
   iterations: 1,
   scheduler: 'dpmpp_3m_k',
   fluxScheduler: 'euler',
+  chromaScheduler: 'euler',
   fluxDypePreset: 'off',
   fluxDypeScale: 2.0,
   fluxDypeExponent: 2.0,
@@ -1152,7 +1211,10 @@ export const getInitialRefImagesState = (): RefImagesState => ({
 
 export const zCanvasReferenceImageState_OLD = zCanvasEntityBase.extend({
   type: z.literal('reference_image'),
-  ipAdapter: z.discriminatedUnion('type', [zIPAdapterConfig, zFLUXReduxConfig]),
+  ipAdapter: z.preprocess(
+    migrateLegacyFLUXReduxConfig,
+    z.discriminatedUnion('type', [zIPAdapterConfig, zFLUXReduxConfig])
+  ),
 });
 
 export const zCanvasMetadata = z.object({

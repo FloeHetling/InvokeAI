@@ -50,6 +50,19 @@ class FLUXConditioningInfo:
 
 
 @dataclass
+class ChromaConditioningInfo:
+    """Chroma T5 conditioning and its transformer attention mask."""
+
+    prompt_embeds: torch.Tensor
+    prompt_attention_mask: torch.Tensor
+
+    def to(self, device: torch.device | None = None, dtype: torch.dtype | None = None):
+        self.prompt_embeds = self.prompt_embeds.to(device=device, dtype=dtype)
+        self.prompt_attention_mask = self.prompt_attention_mask.to(device=device)
+        return self
+
+
+@dataclass
 class SD3ConditioningInfo:
     clip_l_pooled_embeds: torch.Tensor
     clip_l_embeds: torch.Tensor
@@ -211,6 +224,7 @@ class ConditioningFieldData:
         List[BasicConditioningInfo]
         | List[SDXLConditioningInfo]
         | List[FLUXConditioningInfo]
+        | List[ChromaConditioningInfo]
         | List[SD3ConditioningInfo]
         | List[CogView4ConditioningInfo]
         | List[ZImageConditioningInfo]

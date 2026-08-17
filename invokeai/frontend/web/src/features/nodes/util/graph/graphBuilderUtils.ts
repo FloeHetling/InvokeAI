@@ -243,6 +243,7 @@ export const getDenoisingStartAndEnd = (state: RootState): { denoising_start: nu
         denoising_end: 1,
       };
     }
+    case 'chroma':
     case 'flux':
     case 'flux2': {
       if (model.base === 'flux' && model.variant === 'dev_fill') {

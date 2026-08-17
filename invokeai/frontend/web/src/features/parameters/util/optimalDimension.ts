@@ -35,6 +35,7 @@ export const getOptimalDimension = (base?: BaseModelType | null, pidScale = 1): 
       return 512;
     case 'sdxl':
     case 'flux':
+    case 'chroma':
     case 'flux2':
     case 'sd-3':
     case 'cogview4':
@@ -108,6 +109,7 @@ export const getGridSize = (base?: BaseModelType | null, pidScale = 1): number =
       gridSize = 32;
       break;
     case 'flux':
+    case 'chroma':
     case 'flux2':
     case 'sd-3':
     case 'qwen-image':

@@ -1,5 +1,6 @@
 import type { AppStore } from 'app/store/store';
-import { setHiDiffusionEnabled } from 'features/controlLayers/store/paramsSlice';
+import { setChromaScheduler, setHiDiffusionEnabled } from 'features/controlLayers/store/paramsSlice';
+import { refImagesRecalled } from 'features/controlLayers/store/refImagesSlice';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ImageMetadataHandlers, MetadataUtils, parseMetadataHandler } from './parsing';
@@ -13,6 +14,27 @@ const createMockStore = () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createStore = () => createMockStore() as any;
+
+describe('Chroma scheduler metadata parsing', () => {
+  it('parses and recalls the Chroma Beta scheduler from the image metadata', async () => {
+    const store = createStore();
+    const metadata = { model: { base: 'chroma' }, scheduler: 'euler_cfg_pp_beta' };
+
+    const parsed = await parseMetadataHandler(metadata, ImageMetadataHandlers.ChromaScheduler, store);
+    ImageMetadataHandlers.ChromaScheduler.recall(parsed, store);
+
+    expect(parsed).toBe('euler_cfg_pp_beta');
+    expect(store.dispatch).toHaveBeenCalledWith(setChromaScheduler('euler_cfg_pp_beta'));
+  });
+
+  it('does not render the generic scheduler handler for Chroma metadata', async () => {
+    const store = createStore();
+
+    await expect(
+      parseMetadataHandler({ model: { base: 'chroma' }, scheduler: 'euler' }, ImageMetadataHandlers.Scheduler, store)
+    ).rejects.toThrow();
+  });
+});
 
 describe('Qwen metadata parsing', () => {
   it('normalizes synchronous parser throws into rejected promises', async () => {
@@ -159,6 +181,37 @@ describe('Qwen metadata parsing', () => {
     expect(recalled.size).toBe(1);
     const mockStore = store as ReturnType<typeof createMockStore>;
     expect(mockStore.dispatch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('reference image metadata recall', () => {
+  const metadataWithoutReferenceImages = {
+    generation_mode: 'txt2img',
+    width: 512,
+    height: 512,
+    steps: 20,
+    cfg_scale: 7.5,
+    scheduler: 'euler',
+    positive_prompt: 'an older image',
+    negative_prompt: '',
+  };
+
+  it('clears stale reference images when recall-all metadata has no ref_images', async () => {
+    const store = createStore();
+
+    await MetadataUtils.recallAllImageMetadata(metadataWithoutReferenceImages, store);
+
+    expect(store.dispatch).toHaveBeenCalledWith(refImagesRecalled({ entities: [], replace: true }));
+  });
+
+  it('does not clear reference images when RefImages recall is skipped', async () => {
+    const store = createStore();
+
+    await MetadataUtils.recallAllImageMetadata(metadataWithoutReferenceImages, store, [
+      ImageMetadataHandlers.RefImages,
+    ]);
+
+    expect(store.dispatch).not.toHaveBeenCalledWith(refImagesRecalled({ entities: [], replace: true }));
   });
 });
 

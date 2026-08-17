@@ -43,13 +43,9 @@ class FluxVaeDecodeInvocation(BaseInvocation, WithMetadata, WithBoard):
     def _vae_decode(self, vae_info: LoadedModel, latents: torch.Tensor) -> Image.Image:
         assert isinstance(vae_info.model, (AutoEncoder, AutoencoderKL))
 
-        # Only estimate working memory for BFL AutoEncoder (diffusers VAE handles this internally)
-        if isinstance(vae_info.model, AutoEncoder):
-            estimated_working_memory = estimate_vae_working_memory_flux(
-                operation="decode", image_tensor=latents, vae=vae_info.model
-            )
-        else:
-            estimated_working_memory = 0
+        estimated_working_memory = estimate_vae_working_memory_flux(
+            operation="decode", image_tensor=latents, vae=vae_info.model
+        )
 
         with vae_info.model_on_device(working_mem_bytes=estimated_working_memory) as (_, vae):
             assert isinstance(vae, (AutoEncoder, AutoencoderKL))

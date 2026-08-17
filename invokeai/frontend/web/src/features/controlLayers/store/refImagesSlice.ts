@@ -7,11 +7,7 @@ import type { SliceConfig } from 'app/store/types';
 import { clamp } from 'es-toolkit/compat';
 import { logout } from 'features/auth/store/authSlice';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
-import type {
-  CroppableImageWithDims,
-  FLUXReduxImageInfluence,
-  RefImagesState,
-} from 'features/controlLayers/store/types';
+import type { CroppableImageWithDims, RefImagesState } from 'features/controlLayers/store/types';
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import type { FLUXKontextModelConfig, FLUXReduxModelConfig, IPAdapterModelConfig } from 'services/api/types';
 import { assert } from 'tsafe';
@@ -121,11 +117,11 @@ const slice = createSlice({
       }
       entity.config.method = method;
     },
-    refImageFLUXReduxImageInfluenceChanged: (
+    refImageFLUXReduxDownsamplingFactorChanged: (
       state,
-      action: PayloadActionWithId<{ imageInfluence: FLUXReduxImageInfluence }>
+      action: PayloadActionWithId<{ downsamplingFactor: number }>
     ) => {
-      const { id, imageInfluence } = action.payload;
+      const { id, downsamplingFactor } = action.payload;
       const entity = selectRefImageEntity(state, id);
       if (!entity) {
         return;
@@ -133,7 +129,18 @@ const slice = createSlice({
       if (!isFLUXReduxConfig(entity.config)) {
         return;
       }
-      entity.config.imageInfluence = imageInfluence;
+      entity.config.downsamplingFactor = clamp(Math.round(downsamplingFactor), 1, 9);
+    },
+    refImageFLUXReduxWeightChanged: (state, action: PayloadActionWithId<{ weight: number }>) => {
+      const { id, weight } = action.payload;
+      const entity = selectRefImageEntity(state, id);
+      if (!entity) {
+        return;
+      }
+      if (!isFLUXReduxConfig(entity.config)) {
+        return;
+      }
+      entity.config.weight = clamp(weight, 0, 1);
     },
     refImageModelChanged: (
       state,
@@ -344,7 +351,8 @@ export const {
   refImageIPAdapterCLIPVisionModelChanged,
   refImageIPAdapterWeightChanged,
   refImageIPAdapterBeginEndStepPctChanged,
-  refImageFLUXReduxImageInfluenceChanged,
+  refImageFLUXReduxDownsamplingFactorChanged,
+  refImageFLUXReduxWeightChanged,
   refImageKrea2StyleStrengthChanged,
   refImageIsEnabledToggled,
   refImagesRecalled,
