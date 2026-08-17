@@ -14,6 +14,7 @@ import {
 import type { BaseModelType } from 'features/nodes/types/common';
 import { prepareLinearUIBatch } from 'features/nodes/util/graph/buildLinearBatchConfig';
 import { buildAnimaGraph } from 'features/nodes/util/graph/generation/buildAnimaGraph';
+import { buildChromaGraph } from 'features/nodes/util/graph/generation/buildChromaGraph';
 import { buildCogView4Graph } from 'features/nodes/util/graph/generation/buildCogView4Graph';
 import { buildErnieImageGraph } from 'features/nodes/util/graph/generation/buildErnieImageGraph';
 import { buildExternalGraph } from 'features/nodes/util/graph/generation/buildExternalGraph';
@@ -64,6 +65,8 @@ const enqueueCanvas = async (store: AppStore, canvasManager: CanvasManager, prep
         return await buildSD1Graph(graphBuilderArg);
       case `sd-3`:
         return await buildSD3Graph(graphBuilderArg);
+      case 'chroma':
+        return await buildChromaGraph(graphBuilderArg);
       case 'flux':
       case 'flux2':
         return await buildFLUXGraph(graphBuilderArg);

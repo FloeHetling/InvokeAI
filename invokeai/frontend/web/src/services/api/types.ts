@@ -98,6 +98,7 @@ type InternalAnyModelConfig = S['AnyModelConfig'];
 export type MainModelConfig = Extract<InternalAnyModelConfig, { type: 'main' }>;
 type FLUXModelConfig = Extract<InternalAnyModelConfig, { type: 'main'; base: 'flux' }>;
 type FLUX2ModelConfig = Extract<InternalAnyModelConfig, { type: 'main'; base: 'flux2' }>;
+type ChromaModelConfig = Extract<InternalAnyModelConfig, { type: 'main'; base: 'chroma' }>;
 export type AnyFLUXModelConfig = FLUXModelConfig | FLUX2ModelConfig;
 export type ControlLoRAModelConfig = Extract<InternalAnyModelConfig, { type: 'control_lora' }>;
 export type LoRAModelConfig = Extract<InternalAnyModelConfig, { type: 'lora' }>;
@@ -259,6 +260,12 @@ const checkSubmodels = (identifiers: string[], config: AnyModelConfig): boolean 
       (identifier in config.submodels || checkSubmodel(config.submodels, identifier))
   );
 };
+
+export const isSelfContainedChromaPipeline = (config: AnyModelConfig): config is ChromaModelConfig =>
+  config.type === 'main' &&
+  config.base === 'chroma' &&
+  config.format === 'diffusers' &&
+  checkSubmodels(['transformer', 'vae', 'text_encoder', 'tokenizer'], config);
 
 export const isLoRAModelConfig = (config: AnyModelConfig): config is LoRAModelConfig => {
   return config.type === 'lora';
