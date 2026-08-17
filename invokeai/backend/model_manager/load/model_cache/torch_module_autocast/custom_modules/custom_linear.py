@@ -2,6 +2,11 @@ import copy
 
 import torch
 
+from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.async_linear_weight_staging import (
+    mark_staged_tensor_consumed,
+    maybe_stage_tensor_for_input,
+    suspend_cuda_async_linear_weight_staging,
+)
 from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.cast_to_device import cast_to_device
 from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.custom_modules.custom_module_mixin import (
     CustomModuleMixin,
@@ -40,7 +45,8 @@ def autocast_linear_forward_sidecar_patches(
     # change the linear layer's in_features.
     orig_input = input
     input = orig_input[..., : orig_module.in_features]
-    output = orig_module._autocast_forward(input)
+    with suspend_cuda_async_linear_weight_staging():
+        output = orig_module._autocast_forward(input)
 
     # Then, apply layers for which we have optimized implementations.
     unprocessed_patches_and_weights: list[tuple[BaseLayerPatch, float]] = []
@@ -59,17 +65,18 @@ def autocast_linear_forward_sidecar_patches(
 
     # Finally, apply any remaining patches.
     if len(unprocessed_patches_and_weights) > 0:
-        weight, bias = orig_module._cast_weight_bias_for_input(input)
-        # Prepare the original parameters for the patch aggregation.
-        orig_params = {"weight": weight, "bias": bias}
-        # Filter out None values.
-        orig_params = {k: v for k, v in orig_params.items() if v is not None}
+        with suspend_cuda_async_linear_weight_staging():
+            weight, bias = orig_module._cast_weight_bias_for_input(input)
+            # Prepare the original parameters for the patch aggregation.
+            orig_params = {"weight": weight, "bias": bias}
+            # Filter out None values.
+            orig_params = {k: v for k, v in orig_params.items() if v is not None}
 
-        aggregated_param_residuals = orig_module._aggregate_patch_parameters(
-            unprocessed_patches_and_weights, orig_params=orig_params, device=input.device
-        )
-        residual_weight = orig_module._cast_tensor_for_input(aggregated_param_residuals["weight"], input)
-        residual_bias = orig_module._cast_tensor_for_input(aggregated_param_residuals.get("bias", None), input)
+            aggregated_param_residuals = orig_module._aggregate_patch_parameters(
+                unprocessed_patches_and_weights, orig_params=orig_params, device=input.device
+            )
+            residual_weight = orig_module._cast_tensor_for_input(aggregated_param_residuals["weight"], input)
+            residual_bias = orig_module._cast_tensor_for_input(aggregated_param_residuals.get("bias", None), input)
         assert residual_weight is not None
         output += torch.nn.functional.linear(input, residual_weight, residual_bias)
 
@@ -78,7 +85,8 @@ def autocast_linear_forward_sidecar_patches(
 
 class CustomLinear(torch.nn.Linear, CustomModuleMixin):
     def _cast_tensor_for_input(self, tensor: torch.Tensor | None, input: torch.Tensor) -> torch.Tensor | None:
-        tensor = cast_to_device(tensor, input.device)
+        staged_tensor = maybe_stage_tensor_for_input(tensor, input)
+        tensor = staged_tensor if staged_tensor is not None else cast_to_device(tensor, input.device)
         if (
             tensor is not None
             and input.is_floating_point()
@@ -100,7 +108,11 @@ class CustomLinear(torch.nn.Linear, CustomModuleMixin):
 
     def _autocast_forward(self, input: torch.Tensor) -> torch.Tensor:
         weight, bias = self._cast_weight_bias_for_input(input)
-        return torch.nn.functional.linear(input, weight, bias)
+        output = torch.nn.functional.linear(input, weight, bias)
+        mark_staged_tensor_consumed(weight)
+        if bias is not None:
+            mark_staged_tensor_consumed(bias)
+        return output
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if len(self._patches_and_weights) > 0:
@@ -117,6 +129,10 @@ class CustomLinear(torch.nn.Linear, CustomModuleMixin):
             )
         ):
             weight, bias = self._cast_weight_bias_for_input(input)
-            return torch.nn.functional.linear(input, weight, bias)
+            output = torch.nn.functional.linear(input, weight, bias)
+            mark_staged_tensor_consumed(weight)
+            if bias is not None:
+                mark_staged_tensor_consumed(bias)
+            return output
         else:
             return super().forward(input)

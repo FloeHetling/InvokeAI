@@ -38,6 +38,7 @@ import {
   setAnimaScheduler,
   setCfgRescaleMultiplier,
   setCfgScale,
+  setChromaScheduler,
   setClipSkip,
   setFluxDypeExponent,
   setFluxDypePreset,
@@ -99,6 +100,7 @@ import { modelSelected } from 'features/parameters/store/actions';
 import type {
   ParameterCFGRescaleMultiplier,
   ParameterCFGScale,
+  ParameterChromaScheduler,
   ParameterCLIPSkip,
   ParameterFluxDypeExponent,
   ParameterFluxDypePreset,
@@ -126,6 +128,7 @@ import {
   zLoRAWeight,
   zParameterCFGRescaleMultiplier,
   zParameterCFGScale,
+  zParameterChromaScheduler,
   zParameterCLIPSkip,
   zParameterFluxDypeExponent,
   zParameterFluxDypePreset,
@@ -556,6 +559,9 @@ const Scheduler: SingleMetadataHandler<ParameterScheduler> = {
   [SingleMetadataKey]: true,
   type: 'Scheduler',
   parse: (metadata, _store) => {
+    const rawModel = getProperty(metadata, 'model');
+    const modelBase = (rawModel as { base?: unknown } | undefined)?.base;
+    assert(modelBase !== 'chroma', 'Scheduler handler does not apply to Chroma metadata');
     const raw = getProperty(metadata, 'scheduler');
     const parsed = zParameterScheduler.parse(raw);
     return Promise.resolve(parsed);
@@ -595,6 +601,27 @@ const Scheduler: SingleMetadataHandler<ParameterScheduler> = {
   ValueComponent: ({ value }: SingleMetadataValueProps<ParameterScheduler>) => <MetadataPrimitiveValue value={value} />,
 };
 //#endregion Scheduler
+
+//#region ChromaScheduler
+const ChromaScheduler: SingleMetadataHandler<ParameterChromaScheduler> = {
+  [SingleMetadataKey]: true,
+  type: 'ChromaScheduler',
+  parse: (metadata, _store) => {
+    assertMetadataModelBase(metadata, 'chroma', 'ChromaScheduler');
+    const raw = getProperty(metadata, 'scheduler');
+    const parsed = zParameterChromaScheduler.parse(raw);
+    return Promise.resolve(parsed);
+  },
+  recall: (value, store) => {
+    store.dispatch(setChromaScheduler(value));
+  },
+  i18nKey: 'metadata.scheduler',
+  LabelComponent: MetadataLabel,
+  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterChromaScheduler>) => (
+    <MetadataPrimitiveValue value={value} />
+  ),
+};
+//#endregion ChromaScheduler
 
 //#region Width
 const Width: SingleMetadataHandler<ParameterWidth> = {
@@ -2448,6 +2475,7 @@ export const ImageMetadataHandlers = {
   MainModel,
   // Scheduler must be after MainModel so that base-dependent logic (z-image scheduler) works correctly
   Scheduler,
+  ChromaScheduler,
   VAEModel,
   Flux1VAEModel,
   ZImageQwen3EncoderModel,

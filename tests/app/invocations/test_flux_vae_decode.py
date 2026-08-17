@@ -13,6 +13,8 @@ import torch
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 
 from invokeai.app.invocations.flux_vae_decode import FluxVaeDecodeInvocation
+from invokeai.app.invocations.flux_vae_encode import FluxVaeEncodeInvocation
+from invokeai.backend.util.vae_working_memory import estimate_vae_working_memory_flux
 
 
 def _loaded_vae(shift_factor: float | None, scaling_factor: float = 0.3611) -> MagicMock:
@@ -30,12 +32,15 @@ def _loaded_vae(shift_factor: float | None, scaling_factor: float = 0.3611) -> M
     vae_info = MagicMock()
     vae_info.model = vae
     vae_info.compute_device = torch.device("cpu")
+    working_mem_requests: list[int | None] = []
 
     @contextmanager
     def _on_device(working_mem_bytes=None):
+        working_mem_requests.append(working_mem_bytes)
         yield (None, vae)
 
     vae_info.model_on_device = _on_device
+    vae_info.working_mem_requests = working_mem_requests
     return vae_info
 
 
@@ -54,6 +59,9 @@ def test_decode_handles_a_config_with_or_without_a_shift_factor(shift_factor: fl
     passed = vae_info.model.decode.call_args.args[0]
     expected = latents / 0.3611 + (shift_factor or 0.0)
     assert torch.allclose(passed, expected)
+    assert vae_info.working_mem_requests == [
+        estimate_vae_working_memory_flux(operation="decode", image_tensor=latents, vae=vae_info.model)
+    ]
 
 
 def test_decode_treats_an_explicit_none_shift_factor_as_no_shift() -> None:
@@ -66,3 +74,32 @@ def test_decode_treats_an_explicit_none_shift_factor_as_no_shift() -> None:
 
     passed = vae_info.model.decode.call_args.args[0]
     assert torch.allclose(passed, latents / 0.3611)
+
+
+@pytest.mark.parametrize("shift_factor", [None, 0.1159])
+def test_encode_supports_diffusers_autoencoder_kl(shift_factor: float | None) -> None:
+    vae = MagicMock(spec=AutoencoderKL)
+    vae.parameters.side_effect = lambda: iter([torch.zeros(1, dtype=torch.float32)])
+    vae.config = SimpleNamespace(scaling_factor=0.3611, shift_factor=shift_factor)
+    sampled_latents = torch.ones(1, 16, 1, 1)
+    vae.encode.return_value.latent_dist.sample.return_value = sampled_latents
+
+    vae_info = _loaded_vae(shift_factor)
+    vae_info.model = vae
+    working_mem_requests: list[int | None] = []
+
+    @contextmanager
+    def _on_device(working_mem_bytes=None):
+        working_mem_requests.append(working_mem_bytes)
+        yield (None, vae)
+
+    vae_info.model_on_device = _on_device
+    image_tensor = torch.zeros(1, 3, 8, 8)
+
+    latents = FluxVaeEncodeInvocation.vae_encode(vae_info, image_tensor)
+
+    expected = (sampled_latents - (shift_factor or 0.0)) * 0.3611
+    assert torch.allclose(latents, expected)
+    assert working_mem_requests == [
+        estimate_vae_working_memory_flux(operation="encode", image_tensor=image_tensor, vae=vae)
+    ]

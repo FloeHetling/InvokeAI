@@ -1,4 +1,5 @@
 import itertools
+from unittest.mock import MagicMock
 
 import pytest
 import torch
@@ -10,6 +11,7 @@ from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.torch
     apply_custom_layers_to_model,
 )
 from invokeai.backend.util.calc_tensor_size import calc_tensor_size
+from invokeai.backend.util.logging import InvokeAILogger
 from tests.backend.model_manager.load.model_cache.cached_model.utils import (
     DummyModule,
     parameterize_keep_ram_copy,
@@ -81,6 +83,24 @@ def test_cached_model_partial_load(device: str, model: DummyModule, keep_ram_cop
     # Check that the model's modules have device autocasting enabled.
     assert model.linear1.is_device_autocasting_enabled()
     assert model.linear2.is_device_autocasting_enabled()
+
+
+def test_cached_model_partial_load_clamps_negative_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = torch.nn.Sequential(torch.nn.Linear(4, 4))
+    apply_custom_layers_to_model(model)
+    cached_model = CachedModelWithPartialLoad(
+        model=model,
+        compute_device=torch.device("cuda"),
+        keep_ram_copy=False,
+    )
+    logger = MagicMock()
+    monkeypatch.setattr(InvokeAILogger, "get_logger", MagicMock(return_value=logger))
+
+    loaded_bytes = cached_model.partial_load_to_vram(-1)
+
+    assert loaded_bytes == 0
+    assert cached_model.cur_vram_bytes() == 0
+    logger.warning.assert_not_called()
 
 
 @parameterize_mps_and_cuda

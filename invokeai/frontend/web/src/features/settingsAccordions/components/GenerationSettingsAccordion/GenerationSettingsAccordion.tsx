@@ -8,6 +8,7 @@ import {
   selectBase,
   selectFluxDypePreset,
   selectIsAnima,
+  selectIsChroma,
   selectIsErnieImage,
   selectIsExternal,
   selectIsFLUX,
@@ -26,6 +27,7 @@ import LoRASelect from 'features/lora/components/LoRASelect';
 import PidSettings from 'features/parameters/components/Advanced/PidSettings';
 import ParamAnimaScheduler from 'features/parameters/components/Core/ParamAnimaScheduler';
 import ParamCFGScale from 'features/parameters/components/Core/ParamCFGScale';
+import ParamChromaScheduler from 'features/parameters/components/Core/ParamChromaScheduler';
 import ParamErnieImageScheduler from 'features/parameters/components/Core/ParamErnieImageScheduler';
 import ParamFluxDypeExponent from 'features/parameters/components/Core/ParamFluxDypeExponent';
 import ParamFluxDypePreset from 'features/parameters/components/Core/ParamFluxDypePreset';
@@ -61,6 +63,7 @@ export const GenerationSettingsAccordion = memo(() => {
   const modelConfig = useSelectedModelConfig();
   const base = useAppSelector(selectBase);
   const isFLUX = useAppSelector(selectIsFLUX);
+  const isChroma = useAppSelector(selectIsChroma);
   const isFlux2 = useAppSelector(selectIsFlux2);
   const isFlux2Dev = useAppSelector(selectIsFlux2Dev);
   const isZImage = useAppSelector(selectIsZImage);
@@ -108,14 +111,15 @@ export const GenerationSettingsAccordion = memo(() => {
       <Box px={4} pt={4} pb={hasExpanderContent ? 0 : 4} data-testid="generation-accordion">
         <Flex gap={4} flexDir="column" pb={0}>
           <MainModelPicker />
-          {!isExternal && <LoRASelect />}
-          {!isExternal && <LoRAList />}
+          {!isExternal && !isChroma && <LoRASelect />}
+          {!isExternal && !isChroma && <LoRAList />}
         </Flex>
         {hasExpanderContent && (
           <Expander label={t('accordions.advanced.options')} isOpen={isOpenExpander} onToggle={onToggleExpander}>
             <Flex gap={4} flexDir="column" pb={4}>
               <FormControlGroup formLabelProps={formLabelProps}>
                 {shouldShowStandardScheduler(base) && <ParamScheduler />}
+                {!isExternal && isChroma && <ParamChromaScheduler />}
                 {!isExternal && (isFLUX || isFlux2) && <ParamFluxScheduler />}
                 {!isExternal && isZImage && <ParamZImageScheduler />}
                 {!isExternal && isErnieImage && <ParamErnieImageScheduler />}

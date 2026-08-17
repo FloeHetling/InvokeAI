@@ -53,6 +53,7 @@ export type ImageToLatentsNodes =
 
 export type DenoiseLatentsNodes =
   | 'denoise_latents'
+  | 'chroma_denoise'
   | 'flux_denoise'
   | 'flux2_denoise'
   | 'sd3_denoise'
@@ -73,6 +74,7 @@ export type MaskableDenoiseNodes = Exclude<DenoiseLatentsNodes, 'ernie_image_den
 export type MainModelLoaderNodes =
   | 'main_model_loader'
   | 'sdxl_model_loader'
+  | 'chroma_model_loader'
   | 'flux_model_loader'
   | 'flux2_klein_model_loader'
   | 'flux2_dev_model_loader'

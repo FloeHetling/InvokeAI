@@ -337,6 +337,8 @@ class CachedModelWithPartialLoad:
         # TODO(ryand): Handle the case where an exception is thrown while loading or unloading weights. At the very
         # least, we should reset self._cur_vram_bytes to None.
 
+        vram_bytes_to_load = max(0, vram_bytes_to_load)
+
         vram_bytes_loaded = 0
 
         cur_state_dict = self._model.state_dict()
