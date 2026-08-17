@@ -830,6 +830,9 @@
                       "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                     },
                     {
+                      "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                    },
+                    {
                       "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                     },
                     {
@@ -870,6 +873,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -1068,6 +1074,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -1252,6 +1261,9 @@
                       "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                     },
                     {
+                      "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                    },
+                    {
                       "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                     },
                     {
@@ -1292,6 +1304,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -1490,6 +1505,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -1674,6 +1692,9 @@
                       "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                     },
                     {
+                      "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                    },
+                    {
                       "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                     },
                     {
@@ -1714,6 +1735,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -1912,6 +1936,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -2141,6 +2168,9 @@
                       "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                     },
                     {
+                      "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                    },
+                    {
                       "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                     },
                     {
@@ -2181,6 +2211,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -2379,6 +2412,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -2635,6 +2671,9 @@
                       "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                     },
                     {
+                      "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                    },
+                    {
                       "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                     },
                     {
@@ -2675,6 +2714,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -2873,6 +2915,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -3965,6 +4010,9 @@
                       "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                     },
                     {
+                      "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                    },
+                    {
                       "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                     },
                     {
@@ -4005,6 +4053,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -4203,6 +4254,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                    },
+                    {
+                      "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                     },
                     {
                       "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -14743,6 +14797,9 @@
             "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
           },
           {
+            "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+          },
+          {
             "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
           },
           {
@@ -14783,6 +14840,9 @@
           },
           {
             "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+          },
+          {
+            "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
           },
           {
             "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -14981,6 +15041,9 @@
           },
           {
             "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+          },
+          {
+            "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
           },
           {
             "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -15383,6 +15446,7 @@
           "sdxl",
           "sdxl-refiner",
           "flux",
+          "chroma",
           "flux2",
           "cogview4",
           "z-image",
@@ -18918,6 +18982,743 @@
         "version": "1.0.0",
         "output": {
           "$ref": "#/components/schemas/ImageOutput"
+        }
+      },
+      "ChromaDenoiseInvocation": {
+        "category": "latents",
+        "class": "invocation",
+        "classification": "stable",
+        "description": "Run Chroma denoising with T5 attention masks and Chroma-specific guidance modes.",
+        "node_pack": "invokeai",
+        "properties": {
+          "id": {
+            "description": "The id of this instance of an invocation. Must be unique among all instances of invocations.",
+            "field_kind": "node_attribute",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_intermediate": {
+            "default": false,
+            "description": "Whether or not this is an intermediate invocation.",
+            "field_kind": "node_attribute",
+            "input": "direct",
+            "orig_required": true,
+            "title": "Is Intermediate",
+            "type": "boolean",
+            "ui_hidden": false,
+            "ui_type": "IsIntermediate"
+          },
+          "use_cache": {
+            "default": true,
+            "description": "Whether or not to use the cache",
+            "field_kind": "node_attribute",
+            "title": "Use Cache",
+            "type": "boolean"
+          },
+          "latents": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatentsField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Latents tensor",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false
+          },
+          "noise": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatentsField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Noise tensor",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false
+          },
+          "denoise_mask": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DenoiseMaskField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "A mask of the region to apply the denoising process to. Values of 0.0 represent the regions to be fully denoised, and 1.0 represent the regions to be preserved.",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false
+          },
+          "denoising_start": {
+            "default": 0.0,
+            "description": "When to start denoising, expressed a percentage of total steps",
+            "field_kind": "input",
+            "input": "any",
+            "maximum": 1,
+            "minimum": 0,
+            "orig_default": 0.0,
+            "orig_required": false,
+            "title": "Denoising Start",
+            "type": "number"
+          },
+          "denoising_end": {
+            "default": 1.0,
+            "description": "When to stop denoising, expressed a percentage of total steps",
+            "field_kind": "input",
+            "input": "any",
+            "maximum": 1,
+            "minimum": 0,
+            "orig_default": 1.0,
+            "orig_required": false,
+            "title": "Denoising End",
+            "type": "number"
+          },
+          "add_noise": {
+            "default": true,
+            "description": "Add noise based on denoising start.",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": true,
+            "orig_required": false,
+            "title": "Add Noise",
+            "type": "boolean"
+          },
+          "transformer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransformerField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flux model (Transformer) to load",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_required": true,
+            "title": "Transformer"
+          },
+          "control_lora": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ControlLoRAField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Control LoRA model to load",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Control LoRA"
+          },
+          "positive_text_conditioning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FluxConditioningField"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FluxConditioningField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Positive conditioning tensor",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_required": true,
+            "title": "Positive Text Conditioning"
+          },
+          "negative_text_conditioning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FluxConditioningField"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FluxConditioningField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Negative conditioning tensor. Can be None if cfg_scale is 1.0.",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Negative Text Conditioning"
+          },
+          "redux_conditioning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FluxReduxConditioningField"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FluxReduxConditioningField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "FLUX Redux conditioning tensor.",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Redux Conditioning"
+          },
+          "fill_conditioning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FluxFillConditioningField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "FLUX Fill conditioning.",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false
+          },
+          "cfg_scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              }
+            ],
+            "default": 3.0,
+            "description": "Classifier-free guidance scale",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": 3.0,
+            "orig_required": false,
+            "title": "Cfg Scale"
+          },
+          "cfg_scale_start_step": {
+            "default": 0,
+            "description": "Index of the first step to apply cfg_scale. Negative indices count backwards from the the last step (e.g. a value of -1 refers to the final step).",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": 0,
+            "orig_required": false,
+            "title": "CFG Scale Start Step",
+            "type": "integer"
+          },
+          "cfg_scale_end_step": {
+            "default": -1,
+            "description": "Index of the last step to apply cfg_scale. Negative indices count backwards from the last step (e.g. a value of -1 refers to the final step).",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": -1,
+            "orig_required": false,
+            "title": "CFG Scale End Step",
+            "type": "integer"
+          },
+          "width": {
+            "default": 1024,
+            "description": "Width of the generated image.",
+            "field_kind": "input",
+            "input": "any",
+            "multipleOf": 16,
+            "orig_default": 1024,
+            "orig_required": false,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "default": 1024,
+            "description": "Height of the generated image.",
+            "field_kind": "input",
+            "input": "any",
+            "multipleOf": 16,
+            "orig_default": 1024,
+            "orig_required": false,
+            "title": "Height",
+            "type": "integer"
+          },
+          "num_steps": {
+            "default": 40,
+            "description": "Number of Chroma denoising steps",
+            "exclusiveMinimum": 0,
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": 40,
+            "orig_required": false,
+            "title": "Num Steps",
+            "type": "integer"
+          },
+          "scheduler": {
+            "default": "euler",
+            "description": "Scheduler used for Chroma rectified-flow denoising",
+            "enum": ["euler", "euler_cfg_pp_beta", "heun", "lcm"],
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": "euler",
+            "orig_required": false,
+            "title": "Scheduler",
+            "type": "string",
+            "ui_choice_labels": {
+              "euler": "Euler",
+              "euler_cfg_pp_beta": "Euler CFG++ (Beta)",
+              "heun": "Heun (2nd order)",
+              "lcm": "LCM"
+            }
+          },
+          "guidance": {
+            "default": 0.0,
+            "description": "Unused by Chroma; retained for graph field compatibility",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": 0.0,
+            "orig_required": false,
+            "title": "Guidance",
+            "type": "number",
+            "ui_hidden": true
+          },
+          "seed": {
+            "default": 0,
+            "description": "Randomness seed for reproducibility.",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": 0,
+            "orig_required": false,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "control": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FluxControlNetField"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FluxControlNetField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ControlNet models.",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Control"
+          },
+          "controlnet_vae": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VAEField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "VAE",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false
+          },
+          "ip_adapter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IPAdapterField"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/IPAdapterField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "IP-Adapter to apply",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "IP-Adapter"
+          },
+          "kontext_conditioning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FluxKontextConditioningField"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FluxKontextConditioningField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "FLUX Kontext conditioning (reference image).",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Kontext Conditioning"
+          },
+          "dype_preset": {
+            "default": "off",
+            "description": "DyPE preset for high-resolution generation. 'auto' enables automatically for resolutions > 1536px. 'area' enables automatically based on image area. '4k' uses optimized settings for 4K output.",
+            "enum": ["off", "manual", "auto", "area", "4k"],
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": "off",
+            "orig_required": false,
+            "title": "Dype Preset",
+            "type": "string",
+            "ui_choice_labels": {
+              "4k": "4K Optimized",
+              "area": "Area (auto)",
+              "auto": "Auto (>1536px)",
+              "manual": "Manual",
+              "off": "Off"
+            },
+            "ui_order": 100
+          },
+          "dype_scale": {
+            "anyOf": [
+              {
+                "maximum": 8.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "DyPE magnitude (\u03bbs). Higher values = stronger extrapolation. Only used when dype_preset is not 'off'.",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Dype Scale",
+            "ui_order": 101
+          },
+          "dype_exponent": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "DyPE decay speed (\u03bbt). Controls transition from low to high frequency detail. Only used when dype_preset is not 'off'.",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "Dype Exponent",
+            "ui_order": 102
+          },
+          "type": {
+            "const": "chroma_denoise",
+            "default": "chroma_denoise",
+            "field_kind": "node_attribute",
+            "title": "type",
+            "type": "string"
+          }
+        },
+        "required": ["type", "id"],
+        "tags": ["image", "latents", "chroma"],
+        "title": "Chroma Denoise",
+        "type": "object",
+        "version": "1.0.0",
+        "output": {
+          "$ref": "#/components/schemas/LatentsOutput"
+        }
+      },
+      "ChromaModelLoaderInvocation": {
+        "category": "model",
+        "class": "invocation",
+        "classification": "stable",
+        "description": "Load a Chroma transformer with its T5-XXL encoder and FLUX VAE.",
+        "node_pack": "invokeai",
+        "properties": {
+          "id": {
+            "description": "The id of this instance of an invocation. Must be unique among all instances of invocations.",
+            "field_kind": "node_attribute",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_intermediate": {
+            "default": false,
+            "description": "Whether or not this is an intermediate invocation.",
+            "field_kind": "node_attribute",
+            "input": "direct",
+            "orig_required": true,
+            "title": "Is Intermediate",
+            "type": "boolean",
+            "ui_hidden": false,
+            "ui_type": "IsIntermediate"
+          },
+          "use_cache": {
+            "default": true,
+            "description": "Whether or not to use the cache",
+            "field_kind": "node_attribute",
+            "title": "Use Cache",
+            "type": "boolean"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelIdentifierField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Chroma main model",
+            "field_kind": "input",
+            "input": "any",
+            "orig_required": true,
+            "ui_model_base": ["chroma"],
+            "ui_model_type": ["main"]
+          },
+          "t5_encoder_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelIdentifierField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "T5 tokenizer and text encoder",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "T5 Encoder",
+            "ui_model_type": ["t5_encoder"]
+          },
+          "vae_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelIdentifierField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "VAE model to load",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": null,
+            "orig_required": false,
+            "title": "VAE",
+            "ui_model_base": ["flux"],
+            "ui_model_type": ["vae"]
+          },
+          "type": {
+            "const": "chroma_model_loader",
+            "default": "chroma_model_loader",
+            "field_kind": "node_attribute",
+            "title": "type",
+            "type": "string"
+          }
+        },
+        "required": ["type", "id"],
+        "tags": ["model", "chroma"],
+        "title": "Main Model - Chroma",
+        "type": "object",
+        "version": "1.0.0",
+        "output": {
+          "$ref": "#/components/schemas/ChromaModelLoaderOutput"
+        }
+      },
+      "ChromaModelLoaderOutput": {
+        "class": "output",
+        "properties": {
+          "transformer": {
+            "$ref": "#/components/schemas/TransformerField",
+            "description": "Transformer",
+            "field_kind": "output",
+            "title": "Transformer",
+            "ui_hidden": false
+          },
+          "t5_encoder": {
+            "$ref": "#/components/schemas/T5EncoderField",
+            "description": "T5 tokenizer and text encoder",
+            "field_kind": "output",
+            "title": "T5 Encoder",
+            "ui_hidden": false
+          },
+          "vae": {
+            "$ref": "#/components/schemas/VAEField",
+            "description": "VAE",
+            "field_kind": "output",
+            "title": "VAE",
+            "ui_hidden": false
+          },
+          "type": {
+            "const": "chroma_model_loader_output",
+            "default": "chroma_model_loader_output",
+            "field_kind": "node_attribute",
+            "title": "type",
+            "type": "string"
+          }
+        },
+        "required": ["output_meta", "transformer", "t5_encoder", "vae", "type", "type"],
+        "title": "ChromaModelLoaderOutput",
+        "type": "object"
+      },
+      "ChromaTextEncoderInvocation": {
+        "category": "prompt",
+        "class": "invocation",
+        "classification": "stable",
+        "description": "Encode a Chroma prompt with variable-length T5-XXL conditioning.",
+        "node_pack": "invokeai",
+        "properties": {
+          "id": {
+            "description": "The id of this instance of an invocation. Must be unique among all instances of invocations.",
+            "field_kind": "node_attribute",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_intermediate": {
+            "default": false,
+            "description": "Whether or not this is an intermediate invocation.",
+            "field_kind": "node_attribute",
+            "input": "direct",
+            "orig_required": true,
+            "title": "Is Intermediate",
+            "type": "boolean",
+            "ui_hidden": false,
+            "ui_type": "IsIntermediate"
+          },
+          "use_cache": {
+            "default": true,
+            "description": "Whether or not to use the cache",
+            "field_kind": "node_attribute",
+            "title": "Use Cache",
+            "type": "boolean"
+          },
+          "t5_encoder": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/T5EncoderField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "T5 tokenizer and text encoder",
+            "field_kind": "input",
+            "input": "connection",
+            "orig_required": true,
+            "title": "T5 Encoder"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Text prompt to encode.",
+            "field_kind": "input",
+            "input": "any",
+            "orig_required": true,
+            "title": "Prompt",
+            "ui_component": "textarea"
+          },
+          "mask": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TensorField"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "A mask defining the region that this conditioning prompt applies to.",
+            "field_kind": "input",
+            "input": "any",
+            "orig_default": null,
+            "orig_required": false
+          },
+          "type": {
+            "const": "chroma_text_encoder",
+            "default": "chroma_text_encoder",
+            "field_kind": "node_attribute",
+            "title": "type",
+            "type": "string"
+          }
+        },
+        "required": ["type", "id"],
+        "tags": ["prompt", "conditioning", "chroma", "t5"],
+        "title": "Prompt - Chroma",
+        "type": "object",
+        "version": "1.0.0",
+        "output": {
+          "$ref": "#/components/schemas/FluxConditioningOutput"
         }
       },
       "Classification": {
@@ -22588,6 +23389,10 @@
                   "sdxl_img2img",
                   "sdxl_inpaint",
                   "sdxl_outpaint",
+                  "chroma_txt2img",
+                  "chroma_img2img",
+                  "chroma_inpaint",
+                  "chroma_outpaint",
                   "flux_txt2img",
                   "flux_img2img",
                   "flux_inpaint",
@@ -33817,7 +34622,7 @@
         "tags": ["latents", "image", "vae", "i2l", "flux"],
         "title": "Image to Latents - FLUX",
         "type": "object",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "output": {
           "$ref": "#/components/schemas/LatentsOutput"
         }
@@ -35099,6 +35904,15 @@
                   "$ref": "#/components/schemas/CenterPadCropInvocation"
                 },
                 {
+                  "$ref": "#/components/schemas/ChromaDenoiseInvocation"
+                },
+                {
+                  "$ref": "#/components/schemas/ChromaModelLoaderInvocation"
+                },
+                {
+                  "$ref": "#/components/schemas/ChromaTextEncoderInvocation"
+                },
+                {
                   "$ref": "#/components/schemas/CogView4DenoiseInvocation"
                 },
                 {
@@ -36018,6 +36832,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/CalculateImageTilesOutput"
+                },
+                {
+                  "$ref": "#/components/schemas/ChromaModelLoaderOutput"
                 },
                 {
                   "$ref": "#/components/schemas/CogView4ConditioningOutput"
@@ -43637,6 +44454,15 @@
                 "$ref": "#/components/schemas/CenterPadCropInvocation"
               },
               {
+                "$ref": "#/components/schemas/ChromaDenoiseInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaModelLoaderInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaTextEncoderInvocation"
+              },
+              {
                 "$ref": "#/components/schemas/CogView4DenoiseInvocation"
               },
               {
@@ -44515,6 +45341,9 @@
                 "$ref": "#/components/schemas/CalculateImageTilesOutput"
               },
               {
+                "$ref": "#/components/schemas/ChromaModelLoaderOutput"
+              },
+              {
                 "$ref": "#/components/schemas/CogView4ConditioningOutput"
               },
               {
@@ -44986,6 +45815,15 @@
               },
               {
                 "$ref": "#/components/schemas/CenterPadCropInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaDenoiseInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaModelLoaderInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaTextEncoderInvocation"
               },
               {
                 "$ref": "#/components/schemas/CogView4DenoiseInvocation"
@@ -45944,6 +46782,15 @@
           "canvas_v2_mask_and_crop": {
             "$ref": "#/components/schemas/ImageOutput"
           },
+          "chroma_denoise": {
+            "$ref": "#/components/schemas/LatentsOutput"
+          },
+          "chroma_model_loader": {
+            "$ref": "#/components/schemas/ChromaModelLoaderOutput"
+          },
+          "chroma_text_encoder": {
+            "$ref": "#/components/schemas/FluxConditioningOutput"
+          },
           "clip_skip": {
             "$ref": "#/components/schemas/CLIPSkipInvocationOutput"
           },
@@ -46818,6 +47665,9 @@
           "canvas_output",
           "canvas_paste_back",
           "canvas_v2_mask_and_crop",
+          "chroma_denoise",
+          "chroma_model_loader",
+          "chroma_text_encoder",
           "clip_skip",
           "cogview4_denoise",
           "cogview4_i2l",
@@ -47254,6 +48104,15 @@
               },
               {
                 "$ref": "#/components/schemas/CenterPadCropInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaDenoiseInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaModelLoaderInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaTextEncoderInvocation"
               },
               {
                 "$ref": "#/components/schemas/CogView4DenoiseInvocation"
@@ -48314,6 +49173,15 @@
               },
               {
                 "$ref": "#/components/schemas/CenterPadCropInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaDenoiseInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaModelLoaderInvocation"
+              },
+              {
+                "$ref": "#/components/schemas/ChromaTextEncoderInvocation"
               },
               {
                 "$ref": "#/components/schemas/CogView4DenoiseInvocation"
@@ -57353,6 +58221,171 @@
         "title": "Main_Checkpoint_Anima_Config",
         "description": "Model config for Anima single-file checkpoint models (safetensors).\n\nAnima is built on NVIDIA Cosmos Predict2 DiT with a custom LLM Adapter\nthat bridges Qwen3 0.6B text encoder outputs to the DiT."
       },
+      "Main_Checkpoint_Chroma_Config": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "A unique key for this model."
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash",
+            "description": "The hash of the model file(s)."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Path to the model on the filesystem. Relative paths are relative to the Invoke root directory."
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "The size of the model in bytes."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the model."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Model description"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "The original source of the model (path, URL or repo_id)."
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/ModelSourceType",
+            "description": "The type of source"
+          },
+          "source_api_response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Api Response",
+            "description": "The original API response from the source, as stringified JSON."
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Optional URL for the model (e.g. download page or model page)."
+          },
+          "cover_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Image",
+            "description": "Url for image to preview model"
+          },
+          "type": {
+            "type": "string",
+            "const": "main",
+            "title": "Type",
+            "default": "main"
+          },
+          "trigger_phrases": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Phrases",
+            "description": "Set of trigger phrases for this model"
+          },
+          "default_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MainModelDefaultSettings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default settings for this model"
+          },
+          "config_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Path",
+            "description": "Path to the config for this model, if any."
+          },
+          "format": {
+            "type": "string",
+            "const": "checkpoint",
+            "title": "Format",
+            "default": "checkpoint"
+          },
+          "base": {
+            "type": "string",
+            "const": "chroma",
+            "title": "Base",
+            "default": "chroma"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "hash",
+          "path",
+          "file_size",
+          "name",
+          "description",
+          "source",
+          "source_type",
+          "source_api_response",
+          "source_url",
+          "cover_image",
+          "type",
+          "trigger_phrases",
+          "default_settings",
+          "config_path",
+          "format",
+          "base"
+        ],
+        "title": "Main_Checkpoint_Chroma_Config",
+        "description": "Model config for single-file Chroma transformer checkpoints."
+      },
       "Main_Checkpoint_FLUX_Config": {
         "properties": {
           "key": {
@@ -59069,6 +60102,182 @@
         ],
         "title": "Main_Checkpoint_ZImage_Config",
         "description": "Model config for Z-Image single-file checkpoint models (safetensors, etc)."
+      },
+      "Main_Diffusers_Chroma_Config": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "A unique key for this model."
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash",
+            "description": "The hash of the model file(s)."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Path to the model on the filesystem. Relative paths are relative to the Invoke root directory."
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "The size of the model in bytes."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the model."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Model description"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "The original source of the model (path, URL or repo_id)."
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/ModelSourceType",
+            "description": "The type of source"
+          },
+          "source_api_response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Api Response",
+            "description": "The original API response from the source, as stringified JSON."
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Optional URL for the model (e.g. download page or model page)."
+          },
+          "cover_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Image",
+            "description": "Url for image to preview model"
+          },
+          "type": {
+            "type": "string",
+            "const": "main",
+            "title": "Type",
+            "default": "main"
+          },
+          "trigger_phrases": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Phrases",
+            "description": "Set of trigger phrases for this model"
+          },
+          "default_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MainModelDefaultSettings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default settings for this model"
+          },
+          "format": {
+            "type": "string",
+            "const": "diffusers",
+            "title": "Format",
+            "default": "diffusers"
+          },
+          "repo_variant": {
+            "$ref": "#/components/schemas/ModelRepoVariant",
+            "default": ""
+          },
+          "base": {
+            "type": "string",
+            "const": "chroma",
+            "title": "Base",
+            "default": "chroma"
+          },
+          "submodels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/SubmodelDefinition"
+                },
+                "propertyNames": {
+                  "$ref": "#/components/schemas/SubModelType"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submodels",
+            "description": "Loadable submodels in this model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "hash",
+          "path",
+          "file_size",
+          "name",
+          "description",
+          "source",
+          "source_type",
+          "source_api_response",
+          "source_url",
+          "cover_image",
+          "type",
+          "trigger_phrases",
+          "default_settings",
+          "format",
+          "repo_variant",
+          "base",
+          "submodels"
+        ],
+        "title": "Main_Diffusers_Chroma_Config",
+        "description": "Model config for Chroma pipelines and transformers in Diffusers format."
       },
       "Main_Diffusers_CogView4_Config": {
         "properties": {
@@ -67723,6 +68932,9 @@
                 "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
               },
               {
+                "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+              },
+              {
                 "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
               },
               {
@@ -67763,6 +68975,9 @@
               },
               {
                 "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+              },
+              {
+                "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
               },
               {
                 "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -67961,6 +69176,9 @@
               },
               {
                 "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+              },
+              {
+                "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
               },
               {
                 "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -68391,6 +69609,9 @@
                     "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                   },
                   {
+                    "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                  },
+                  {
                     "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                   },
                   {
@@ -68431,6 +69652,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                   },
                   {
                     "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -68629,6 +69853,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                  },
+                  {
+                    "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                   },
                   {
                     "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -68944,6 +70171,9 @@
                 "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
               },
               {
+                "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+              },
+              {
                 "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
               },
               {
@@ -68984,6 +70214,9 @@
               },
               {
                 "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+              },
+              {
+                "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
               },
               {
                 "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -69182,6 +70415,9 @@
               },
               {
                 "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+              },
+              {
+                "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
               },
               {
                 "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -69353,6 +70589,9 @@
                 "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
               },
               {
+                "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+              },
+              {
                 "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
               },
               {
@@ -69393,6 +70632,9 @@
               },
               {
                 "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+              },
+              {
+                "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
               },
               {
                 "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -69591,6 +70833,9 @@
               },
               {
                 "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+              },
+              {
+                "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
               },
               {
                 "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -70232,6 +71477,9 @@
                   "$ref": "#/components/schemas/Main_Diffusers_SD3_Config"
                 },
                 {
+                  "$ref": "#/components/schemas/Main_Diffusers_Chroma_Config"
+                },
+                {
                   "$ref": "#/components/schemas/Main_Diffusers_FLUX_Config"
                 },
                 {
@@ -70272,6 +71520,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/Main_Checkpoint_Flux2_Config"
+                },
+                {
+                  "$ref": "#/components/schemas/Main_Checkpoint_Chroma_Config"
                 },
                 {
                   "$ref": "#/components/schemas/Main_Checkpoint_FLUX_Config"
@@ -70470,6 +71721,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/T5Encoder_GGUF_Config"
+                },
+                {
+                  "$ref": "#/components/schemas/T5Encoder_Checkpoint_Config"
                 },
                 {
                   "$ref": "#/components/schemas/Qwen3VLEncoder_Checkpoint_Config"
@@ -84369,6 +85623,155 @@
         ],
         "title": "T5Encoder_BnBLLMint8_Config",
         "description": "Configuration for T5 Encoder models quantized by bitsandbytes' LLM.int8."
+      },
+      "T5Encoder_Checkpoint_Config": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "A unique key for this model."
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash",
+            "description": "The hash of the model file(s)."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Path to the model on the filesystem. Relative paths are relative to the Invoke root directory."
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size",
+            "description": "The size of the model in bytes."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the model."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Model description"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "The original source of the model (path, URL or repo_id)."
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/ModelSourceType",
+            "description": "The type of source"
+          },
+          "source_api_response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Api Response",
+            "description": "The original API response from the source, as stringified JSON."
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Optional URL for the model (e.g. download page or model page)."
+          },
+          "cover_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Image",
+            "description": "Url for image to preview model"
+          },
+          "config_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Path",
+            "description": "Path to the config for this model, if any."
+          },
+          "base": {
+            "type": "string",
+            "const": "any",
+            "title": "Base",
+            "default": "any"
+          },
+          "type": {
+            "type": "string",
+            "const": "t5_encoder",
+            "title": "Type",
+            "default": "t5_encoder"
+          },
+          "format": {
+            "type": "string",
+            "const": "checkpoint",
+            "title": "Format",
+            "default": "checkpoint"
+          },
+          "cpu_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Only",
+            "description": "Whether this model should run on CPU only"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "hash",
+          "path",
+          "file_size",
+          "name",
+          "description",
+          "source",
+          "source_type",
+          "source_api_response",
+          "source_url",
+          "cover_image",
+          "config_path",
+          "base",
+          "type",
+          "format",
+          "cpu_only"
+        ],
+        "title": "T5Encoder_Checkpoint_Config",
+        "description": "Configuration for a raw Transformers-format T5-XXL encoder safetensors file.\n\nFLUX/Chroma T5-XXL encoders are commonly distributed this way, without a\nsibling ``config.json`` or tokenizer. InvokeAI supplies the canonical T5\nconfiguration and its bundled tokenizer when loading this format."
       },
       "T5Encoder_GGUF_Config": {
         "properties": {

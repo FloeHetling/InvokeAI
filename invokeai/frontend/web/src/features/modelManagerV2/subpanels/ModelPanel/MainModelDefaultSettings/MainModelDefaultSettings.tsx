@@ -52,7 +52,11 @@ export const MainModelDefaultSettings = memo(({ modelConfig }: Props) => {
   const canManageModels = useIsModelManagerEnabled();
   const { t } = useTranslation();
 
-  const isFluxFamily = useMemo(() => {
+  const usesFluxScheduler = useMemo(() => {
+    return ['flux', 'chroma', 'flux2'].includes(modelConfig.base);
+  }, [modelConfig]);
+
+  const usesDistilledGuidance = useMemo(() => {
     return ['flux', 'flux2'].includes(modelConfig.base);
   }, [modelConfig]);
 
@@ -145,12 +149,14 @@ export const MainModelDefaultSettings = memo(({ modelConfig }: Props) => {
 
       <SimpleGrid columns={2} gap={8}>
         <DefaultVae control={control} name="vae" />
-        {!isFluxFamily && <DefaultVaePrecision control={control} name="vaePrecision" />}
-        {!isFluxFamily && <DefaultScheduler control={control} name="scheduler" />}
+        {!usesFluxScheduler && <DefaultVaePrecision control={control} name="vaePrecision" />}
+        {!usesFluxScheduler && <DefaultScheduler control={control} name="scheduler" />}
         <DefaultSteps control={control} name="steps" />
-        {isFluxFamily && <DefaultGuidance control={control} name="guidance" />}
-        {!isFluxFamily && <DefaultCfgScale control={control} name="cfgScale" />}
-        {!isFluxFamily && <DefaultCfgRescaleMultiplier control={control} name="cfgRescaleMultiplier" />}
+        {usesDistilledGuidance && <DefaultGuidance control={control} name="guidance" />}
+        {!usesDistilledGuidance && <DefaultCfgScale control={control} name="cfgScale" />}
+        {!usesDistilledGuidance && !usesFluxScheduler && (
+          <DefaultCfgRescaleMultiplier control={control} name="cfgRescaleMultiplier" />
+        )}
         <DefaultWidth control={control} optimalDimension={optimalDimension} />
         <DefaultHeight control={control} optimalDimension={optimalDimension} />
         {!isQuantized && <DefaultFp8Storage control={control} name="fp8Storage" />}

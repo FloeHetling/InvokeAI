@@ -1,5 +1,6 @@
 import einops
 import torch
+from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 
 from invokeai.app.invocations.baseinvocation import BaseInvocation, invocation
 from invokeai.app.invocations.fields import (
@@ -14,7 +15,6 @@ from invokeai.app.services.shared.invocation_context import InvocationContext
 from invokeai.backend.flux.modules.autoencoder import AutoEncoder
 from invokeai.backend.model_manager.load.load_base import LoadedModel
 from invokeai.backend.stable_diffusion.diffusers_pipeline import image_resized_to_grid_as_tensor
-from invokeai.backend.util.devices import TorchDevice
 from invokeai.backend.util.vae_working_memory import estimate_vae_working_memory_flux
 
 
@@ -23,7 +23,7 @@ from invokeai.backend.util.vae_working_memory import estimate_vae_working_memory
     title="Image to Latents - FLUX",
     tags=["latents", "image", "vae", "i2l", "flux"],
     category="latents",
-    version="1.0.1",
+    version="1.0.2",
 )
 class FluxVaeEncodeInvocation(BaseInvocation):
     """Encodes an image into latents."""
@@ -42,16 +42,25 @@ class FluxVaeEncodeInvocation(BaseInvocation):
         # TODO(ryand): Write a util function for generating random tensors that is consistent across devices / dtypes.
         # There's a starting point in get_noise(...), but it needs to be extracted and generalized. This function
         # should be used for VAE encode sampling.
-        assert isinstance(vae_info.model, AutoEncoder)
-        estimated_working_memory = estimate_vae_working_memory_flux(
-            operation="encode", image_tensor=image_tensor, vae=vae_info.model
+        assert isinstance(vae_info.model, (AutoEncoder, AutoencoderKL))
+        estimated_working_memory = (
+            estimate_vae_working_memory_flux(operation="encode", image_tensor=image_tensor, vae=vae_info.model)
+            if isinstance(vae_info.model, AutoEncoder)
+            else 0
         )
-        generator = torch.Generator(device=TorchDevice.choose_torch_device()).manual_seed(0)
+        generator = torch.Generator(device=vae_info.compute_device).manual_seed(0)
         with vae_info.model_on_device(working_mem_bytes=estimated_working_memory) as (_, vae):
-            assert isinstance(vae, AutoEncoder)
+            assert isinstance(vae, (AutoEncoder, AutoencoderKL))
             vae_dtype = next(iter(vae.parameters())).dtype
-            image_tensor = image_tensor.to(device=TorchDevice.choose_torch_device(), dtype=vae_dtype)
-            latents = vae.encode(image_tensor, sample=True, generator=generator)
+            image_tensor = image_tensor.to(device=vae_info.compute_device, dtype=vae_dtype)
+            if isinstance(vae, AutoEncoder):
+                latents = vae.encode(image_tensor, sample=True, generator=generator)
+            else:
+                latents = vae.encode(image_tensor).latent_dist.sample(generator=generator)
+                shift_factor = getattr(vae.config, "shift_factor", None)
+                if shift_factor is not None:
+                    latents = latents - shift_factor
+                latents = latents * vae.config.scaling_factor
             return latents
 
     @torch.no_grad()

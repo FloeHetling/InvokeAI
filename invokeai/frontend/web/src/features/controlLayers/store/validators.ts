@@ -49,7 +49,7 @@ export const getRegionalGuidanceWarnings = (
   }
 
   if (model) {
-    if (model.base === 'sd-3' || model.base === 'sd-2') {
+    if (model.base === 'chroma' || model.base === 'sd-3' || model.base === 'sd-2') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
       return warnings;
@@ -186,7 +186,7 @@ export const getGlobalReferenceImageWarnings = (
       return warnings;
     }
 
-    if (model.base === 'sd-3' || model.base === 'sd-2' || model.base === 'anima') {
+    if (model.base === 'chroma' || model.base === 'sd-3' || model.base === 'sd-2' || model.base === 'anima') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
       return warnings;
@@ -238,7 +238,7 @@ export const getControlLayerWarnings = (
     // No model selected
     warnings.push(WARNINGS.CONTROL_ADAPTER_NO_MODEL_SELECTED);
   } else if (model) {
-    if (model.base === 'sd-3' || model.base === 'sd-2') {
+    if (model.base === 'chroma' || model.base === 'sd-3' || model.base === 'sd-2') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
     } else if (model.base === 'anima' && entity.controlAdapter.type !== 'anima_lllite') {

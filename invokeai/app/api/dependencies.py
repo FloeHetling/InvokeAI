@@ -63,6 +63,7 @@ from invokeai.app.services.workflow_thumbnails.workflow_thumbnails_disk import W
 from invokeai.backend.stable_diffusion.diffusion.conditioning_data import (
     AnimaConditioningInfo,
     BasicConditioningInfo,
+    ChromaConditioningInfo,
     CogView4ConditioningInfo,
     ConditioningFieldData,
     ErnieImageConditioningInfo,
@@ -162,6 +163,7 @@ class ApiDependencies:
                 safe_globals=[
                     ConditioningFieldData,
                     BasicConditioningInfo,
+                    ChromaConditioningInfo,
                     SDXLConditioningInfo,
                     FLUXConditioningInfo,
                     SD3ConditioningInfo,

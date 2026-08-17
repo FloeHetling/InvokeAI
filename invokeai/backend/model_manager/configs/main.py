@@ -131,6 +131,8 @@ class MainModelDefaultSettings(BaseModel):
                 else:
                     # Distilled models (Klein 4B, Klein 9B) use fewer steps
                     return cls(steps=4, cfg_scale=1.0, width=1024, height=1024)
+            case BaseModelType.Chroma:
+                return cls(steps=40, cfg_scale=3.0, width=1024, height=1024)
             case BaseModelType.QwenImage:
                 return cls(steps=40, cfg_scale=4.0, width=1024, height=1024)
             case BaseModelType.Krea2:
@@ -215,6 +217,25 @@ def _has_main_keys(state_dict: dict[str | int, Any]) -> bool:
             # careful to avoid false positives on XLabs FLUX IP-Adapter models.
             return True
     return False
+
+
+def _has_chroma_keys(state_dict: dict[str | int, Any]) -> bool:
+    """Return whether a state dict has the architectural markers of a Chroma transformer."""
+    key_sets = (
+        {
+            "distilled_guidance_layer.in_proj.weight",
+            "distilled_guidance_layer.layers.4.out_layer.weight",
+            "double_blocks.0.img_attn.norm.key_norm.scale",
+            "single_blocks.37.linear2.weight",
+        },
+        {
+            "model.diffusion_model.distilled_guidance_layer.in_proj.weight",
+            "model.diffusion_model.distilled_guidance_layer.layers.4.out_layer.weight",
+            "model.diffusion_model.double_blocks.0.img_attn.norm.key_norm.scale",
+            "model.diffusion_model.single_blocks.37.linear2.weight",
+        },
+    )
+    return any(keys.issubset(state_dict) for keys in key_sets)
 
 
 def _has_z_image_keys(state_dict: dict[str | int, Any]) -> bool:
@@ -644,6 +665,8 @@ class Main_Checkpoint_FLUX_Config(Checkpoint_Config_Base, Main_Config_Base, Conf
     @classmethod
     def _validate_is_flux(cls, mod: ModelOnDisk) -> None:
         state_dict = mod.load_state_dict()
+        if _has_chroma_keys(state_dict):
+            raise NotAMatchError("model is a Chroma transformer, not FLUX.1")
         if not state_dict_has_any_keys_exact(
             state_dict,
             {
@@ -688,6 +711,28 @@ class Main_Checkpoint_FLUX_Config(Checkpoint_Config_Base, Main_Config_Base, Conf
         has_ggml_tensors = _has_ggml_tensors(mod.load_state_dict())
         if has_ggml_tensors:
             raise NotAMatchError("state dict looks like GGUF quantized")
+
+
+class Main_Checkpoint_Chroma_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Base):
+    """Model config for single-file Chroma transformer checkpoints."""
+
+    format: Literal[ModelFormat.Checkpoint] = Field(default=ModelFormat.Checkpoint)
+    base: Literal[BaseModelType.Chroma] = Field(default=BaseModelType.Chroma)
+
+    @classmethod
+    def from_model_on_disk(cls, mod: ModelOnDisk, override_fields: dict[str, Any]) -> Self:
+        raise_if_not_file(mod)
+        raise_for_override_fields(cls, override_fields)
+
+        state_dict = mod.load_state_dict()
+        if not _has_chroma_keys(state_dict):
+            raise NotAMatchError("state dict does not look like a Chroma transformer")
+        if _has_ggml_tensors(state_dict):
+            raise NotAMatchError("state dict looks like GGUF quantized")
+        if _has_bnb_nf4_keys(state_dict):
+            raise NotAMatchError("state dict looks like bitsandbytes NF4")
+
+        return cls(**override_fields)
 
 
 class Main_Checkpoint_Flux2_Config(Checkpoint_Config_Base, Main_Config_Base, Config_Base):
@@ -985,6 +1030,69 @@ class Main_Diffusers_FLUX_Config(Diffusers_Config_Base, Main_Config_Base, Config
             return FluxVariantType.Dev
         else:
             return FluxVariantType.Schnell
+
+
+class Main_Diffusers_Chroma_Config(Diffusers_Config_Base, Main_Config_Base, Config_Base):
+    """Model config for Chroma pipelines and transformers in Diffusers format."""
+
+    base: Literal[BaseModelType.Chroma] = Field(BaseModelType.Chroma)
+    submodels: dict[SubModelType, SubmodelDefinition] | None = Field(
+        description="Loadable submodels in this model",
+        default=None,
+    )
+
+    @classmethod
+    def from_model_on_disk(cls, mod: ModelOnDisk, override_fields: dict[str, Any]) -> Self:
+        raise_if_not_dir(mod)
+        raise_for_override_fields(cls, override_fields)
+
+        raise_for_class_name(
+            common_config_paths(mod.path),
+            {
+                "ChromaPipeline",
+                "ChromaTransformer2DModel",
+            },
+        )
+
+        override_fields = {key: value for key, value in override_fields.items() if key != "submodels"}
+        repo_variant = override_fields.pop("repo_variant", None) or cls._get_repo_variant_or_raise(mod)
+        return cls(**override_fields, repo_variant=repo_variant, submodels=cls._get_submodels(mod))
+
+    @classmethod
+    def _get_submodels(cls, mod: ModelOnDisk) -> dict[SubModelType, SubmodelDefinition]:
+        model_index = mod.path / "model_index.json"
+        if not model_index.exists():
+            return {
+                SubModelType.Transformer: SubmodelDefinition(
+                    path_or_prefix=mod.path.resolve().as_posix(),
+                    model_type=ModelType.Main,
+                )
+            }
+
+        config = get_config_dict_or_raise(model_index)
+        class_to_submodel = {
+            "ChromaTransformer2DModel": (SubModelType.Transformer, ModelType.Main),
+            "T5EncoderModel": (SubModelType.TextEncoder, ModelType.T5Encoder),
+            "T5Tokenizer": (SubModelType.Tokenizer, ModelType.T5Encoder),
+            "T5TokenizerFast": (SubModelType.Tokenizer, ModelType.T5Encoder),
+            "AutoencoderKL": (SubModelType.VAE, ModelType.VAE),
+        }
+        submodels: dict[SubModelType, SubmodelDefinition] = {}
+        for key, value in config.items():
+            if key.startswith("_") or not (isinstance(value, list) and len(value) == 2):
+                continue
+            mapping = class_to_submodel.get(value[1])
+            if mapping is None:
+                continue
+            submodel_type, model_type = mapping
+            component_path = mod.path / key
+            if not component_path.exists():
+                continue
+            submodels[submodel_type] = SubmodelDefinition(
+                path_or_prefix=component_path.resolve().as_posix(),
+                model_type=model_type,
+            )
+        return submodels
 
 
 class Main_Diffusers_Flux2_Config(Diffusers_Config_Base, Main_Config_Base, Config_Base):

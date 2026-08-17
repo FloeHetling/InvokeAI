@@ -563,8 +563,8 @@ const Scheduler: SingleMetadataHandler<ParameterScheduler> = {
   recall: (value, store) => {
     // Dispatch to the appropriate scheduler based on the current model base
     const base = selectBase(store.getState());
-    if (base === 'flux' || base === 'flux2') {
-      // Flux and Flux2 (Klein) only support euler, heun, lcm
+    if (base === 'chroma' || base === 'flux' || base === 'flux2') {
+      // Chroma, Flux and Flux2 (Klein) only support euler, heun, lcm
       if (value === 'euler' || value === 'heun' || value === 'lcm') {
         store.dispatch(setFluxScheduler(value));
       }

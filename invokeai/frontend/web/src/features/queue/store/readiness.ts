@@ -55,6 +55,7 @@ import { selectFlux2DevDiffusersModels, selectFlux2DiffusersModels } from 'servi
 import type { AnyModelConfig, MainOrExternalModelConfig } from 'services/api/types';
 import {
   isExternalApiModelConfig,
+  isSelfContainedChromaPipeline,
   isSelfContainedSDNQFlux1Pipeline,
   isSelfContainedSDNQPipeline,
   isWanSingleFileMainModelConfig,
@@ -390,6 +391,15 @@ export const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
     // nothing else to validate
   } else if (isExternalApiModelConfig(model)) {
     // external models don't require local sub-models
+  } else if (model.base === 'chroma') {
+    if (!isSelfContainedChromaPipeline(model)) {
+      if (!params.t5EncoderModel) {
+        reasons.push({ content: i18n.t('parameters.invoke.noT5EncoderModelSelected') });
+      }
+      if (!params.fluxVAE) {
+        reasons.push({ content: i18n.t('parameters.invoke.noFLUXVAEModelSelected') });
+      }
+    }
   } else if (model.base === 'flux') {
     // A complete SDNQ FLUX.1 pipeline install ships its own T5, CLIP and VAE, and the model loader
     // node falls back to them, so requiring the standalone selections here would keep that path
@@ -584,7 +594,11 @@ export const getReasonsWhyCannotEnqueueGenerateTab = (arg: {
     }
   }
 
-  if (model && !isExternalApiModelConfig(model) && SUPPORTS_REF_IMAGES_BASE_MODELS.includes(model.base)) {
+  if (
+    model &&
+    !isExternalApiModelConfig(model) &&
+    (model.base === 'chroma' || SUPPORTS_REF_IMAGES_BASE_MODELS.includes(model.base))
+  ) {
     const enabledRefImages = refImages.entities.filter(({ isEnabled }) => isEnabled);
 
     enabledRefImages.forEach((entity, i) => {
@@ -811,6 +825,15 @@ export const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
     // nothing else to validate
   } else if (isExternalApiModelConfig(model)) {
     // external models don't require local sub-models
+  } else if (model.base === 'chroma') {
+    if (!isSelfContainedChromaPipeline(model)) {
+      if (!params.t5EncoderModel) {
+        reasons.push({ content: i18n.t('parameters.invoke.noT5EncoderModelSelected') });
+      }
+      if (!params.fluxVAE) {
+        reasons.push({ content: i18n.t('parameters.invoke.noFLUXVAEModelSelected') });
+      }
+    }
   } else if (model.base === 'flux') {
     // A complete SDNQ FLUX.1 pipeline install ships its own T5, CLIP and VAE, and the model loader
     // node falls back to them, so requiring the standalone selections here would keep that path
@@ -885,6 +908,26 @@ export const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
           }),
         });
       }
+    }
+  }
+
+  if (model?.base === 'chroma') {
+    const { bbox } = canvas;
+    const gridSize = getGridSize('chroma');
+    const size = bbox.scaleMethod === 'none' ? bbox.rect : bbox.scaledSize;
+    const widthKey =
+      bbox.scaleMethod === 'none'
+        ? 'parameters.invoke.modelIncompatibleBboxWidth'
+        : 'parameters.invoke.modelIncompatibleScaledBboxWidth';
+    const heightKey =
+      bbox.scaleMethod === 'none'
+        ? 'parameters.invoke.modelIncompatibleBboxHeight'
+        : 'parameters.invoke.modelIncompatibleScaledBboxHeight';
+    if (size.width % gridSize !== 0) {
+      reasons.push({ content: i18n.t(widthKey, { model: 'Chroma', width: size.width, multiple: gridSize }) });
+    }
+    if (size.height % gridSize !== 0) {
+      reasons.push({ content: i18n.t(heightKey, { model: 'Chroma', height: size.height, multiple: gridSize }) });
     }
   }
 
@@ -1411,7 +1454,11 @@ export const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
     }
   });
 
-  if (model && !isExternalApiModelConfig(model) && SUPPORTS_REF_IMAGES_BASE_MODELS.includes(model.base)) {
+  if (
+    model &&
+    !isExternalApiModelConfig(model) &&
+    (model.base === 'chroma' || SUPPORTS_REF_IMAGES_BASE_MODELS.includes(model.base))
+  ) {
     const enabledRefImages = refImages.entities.filter(({ isEnabled }) => isEnabled);
 
     enabledRefImages.forEach((entity, i) => {
