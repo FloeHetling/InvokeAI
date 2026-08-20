@@ -5,6 +5,7 @@ import torch
 from tqdm import tqdm
 
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
+from invokeai.backend.chroma.numeric_diagnostics import is_chroma_numeric_diagnostics_enabled, log_tensor_fingerprint
 from invokeai.backend.flux.extensions.regional_prompting_extension import RegionalPromptingExtension
 from invokeai.backend.rectified_flow.rectified_flow_inpaint_extension import RectifiedFlowInpaintExtension
 from invokeai.backend.stable_diffusion.diffusers_pipeline import PipelineIntermediateState
@@ -64,6 +65,7 @@ def denoise_euler_cfg_pp(
     step_callback: Callable[[PipelineIntermediateState], None],
     inpaint_extension: RectifiedFlowInpaintExtension | None,
     allow_batched_cfg: bool,
+    model_input_dtype: torch.dtype | None = None,
 ) -> torch.Tensor:
     """Denoise Chroma latents with deterministic Euler CFG++."""
     total_steps = len(timesteps) - 1
@@ -72,21 +74,41 @@ def denoise_euler_cfg_pp(
     if len(cfg_scale) < total_steps:
         raise ValueError("CFG scale schedule is shorter than the Chroma timestep schedule")
 
+    diagnostics_enabled = is_chroma_numeric_diagnostics_enabled()
+    if diagnostics_enabled:
+        log_tensor_fingerprint("cfgpp.sampler_state.initial", img)
+
     iterator = enumerate(zip(timesteps[:-1], timesteps[1:], strict=True))
     for step_index, (sigma, sigma_next) in tqdm(
         iterator,
         total=total_steps,
         desc=f"Denoising{TorchDevice.get_session_device_label()}",
     ):
+        model_img = img if model_input_dtype is None else img.to(dtype=model_input_dtype)
+        model_img_ids = img_ids if model_input_dtype is None else img_ids.to(dtype=model_input_dtype)
         timestep_vec = torch.full((img.shape[0],), sigma, dtype=img.dtype, device=img.device)
+
+        if diagnostics_enabled and step_index == 0:
+            log_tensor_fingerprint("cfgpp.step0.model_img", model_img)
+            log_tensor_fingerprint("cfgpp.step0.model_img_ids", model_img_ids)
+            log_tensor_fingerprint("cfgpp.step0.timestep_vec", timestep_vec)
+
         positive_pred, negative_pred = model.predict_cfg_branches(
-            img=img,
-            img_ids=img_ids,
+            img=model_img,
+            img_ids=model_img_ids,
             timesteps=timestep_vec,
             positive_extension=positive_extension,
             negative_extension=negative_extension,
             allow_batched=allow_batched_cfg,
         )
+
+        if model_input_dtype is not None:
+            positive_pred = positive_pred.to(dtype=img.dtype)
+            negative_pred = negative_pred.to(dtype=img.dtype)
+
+        if diagnostics_enabled and step_index == 0:
+            log_tensor_fingerprint("cfgpp.step0.positive_pred_sampler_dtype", positive_pred)
+            log_tensor_fingerprint("cfgpp.step0.negative_pred_sampler_dtype", negative_pred)
 
         img, preview_img = euler_cfg_pp_step(
             img=img,
@@ -110,5 +132,8 @@ def denoise_euler_cfg_pp(
                 latents=preview_img,
             )
         )
+
+    if diagnostics_enabled:
+        log_tensor_fingerprint("cfgpp.sampler_state.final", img)
 
     return img

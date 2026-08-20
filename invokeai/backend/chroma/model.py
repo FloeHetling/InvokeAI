@@ -4,6 +4,10 @@ from typing import Any
 import torch
 from diffusers import ChromaTransformer2DModel
 
+from invokeai.backend.chroma.numeric_diagnostics import (
+    is_chroma_numeric_diagnostics_enabled,
+    log_tensor_fingerprint,
+)
 from invokeai.backend.flux.extensions.regional_prompting_extension import RegionalPromptingExtension
 from invokeai.backend.util.devices import TorchDevice
 from invokeai.backend.util.logging import InvokeAILogger
@@ -17,6 +21,7 @@ class ChromaTransformerAdapter:
         self._batched_cfg_negative_extension: RegionalPromptingExtension | None = None
         self._batched_cfg_scale: list[float] | None = None
         self._batched_cfg_disabled = False
+        self._numeric_diagnostics_first_forward_logged = False
 
     def enable_batched_cfg(
         self,
@@ -440,7 +445,19 @@ class ChromaTransformerAdapter:
         txt_ids = self._normalize_position_ids(txt_ids)
         img_ids = self._normalize_position_ids(img_ids)
 
-        return self.model(
+        log_first_forward = (
+            is_chroma_numeric_diagnostics_enabled() and not self._numeric_diagnostics_first_forward_logged
+        )
+        if log_first_forward:
+            log_tensor_fingerprint("transformer.forward0.img", img)
+            log_tensor_fingerprint("transformer.forward0.txt", txt)
+            log_tensor_fingerprint("transformer.forward0.img_ids", img_ids)
+            log_tensor_fingerprint("transformer.forward0.txt_ids", txt_ids)
+            log_tensor_fingerprint("transformer.forward0.timesteps", timesteps)
+            log_tensor_fingerprint("transformer.forward0.text_attention_mask", text_attention_mask)
+            log_tensor_fingerprint("transformer.forward0.attention_mask", attention_mask)
+
+        prediction = self.model(
             hidden_states=img,
             encoder_hidden_states=txt,
             timestep=timesteps,
@@ -449,3 +466,9 @@ class ChromaTransformerAdapter:
             attention_mask=attention_mask,
             return_dict=False,
         )[0]
+
+        if log_first_forward:
+            log_tensor_fingerprint("transformer.forward0.output", prediction)
+            self._numeric_diagnostics_first_forward_logged = True
+
+        return prediction

@@ -11,6 +11,12 @@ from invokeai.app.invocations.flux_denoise import FluxDenoiseInvocation
 from invokeai.app.services.shared.invocation_context import InvocationContext
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
+from invokeai.backend.chroma.numeric_diagnostics import (
+    is_chroma_numeric_diagnostics_enabled,
+    log_tensor_fingerprint,
+    should_use_fp32_sampler_state,
+)
+from invokeai.backend.chroma.sampling_utils import get_chroma_noise
 from invokeai.backend.chroma.schedulers import (
     CHROMA_SCHEDULER_LABELS,
     CHROMA_SCHEDULER_NAME_VALUES,
@@ -76,9 +82,12 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
 
         inference_dtype = torch.bfloat16
         device = TorchDevice.choose_torch_device()
+        diagnostics_enabled = is_chroma_numeric_diagnostics_enabled()
+        fp32_sampler_state = self.scheduler == "euler_cfg_pp_beta" or should_use_fp32_sampler_state()
+        sampler_state_dtype = torch.float32 if fp32_sampler_state else inference_dtype
         init_latents = context.tensors.load(self.latents.latents_name) if self.latents else None
         if init_latents is not None:
-            init_latents = init_latents.to(device=device, dtype=inference_dtype)
+            init_latents = init_latents.to(device=device, dtype=sampler_state_dtype)
 
         should_ignore_noise = init_latents is not None and not self.add_noise and self.denoise_mask is None
         noise: Optional[torch.Tensor]
@@ -110,9 +119,18 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
 
         if self.scheduler == "euler_cfg_pp_beta":
             timesteps = get_chroma_beta_schedule(self.num_steps)
+            schedule_source = "chroma_beta"
         else:
             timesteps = get_schedule(self.num_steps, image_seq_len=image_seq_len, shift=True)
+            schedule_source = self.scheduler
         timesteps = clip_timestep_schedule_fractional(timesteps, self.denoising_start, self.denoising_end)
+
+        if diagnostics_enabled:
+            schedule_values = ",".join(f"{timestep:.9g}" for timestep in timesteps)
+            context.logger.info(
+                f"Chroma experiment diagnostics schedule source={schedule_source} count={len(timesteps)} "
+                f"values={schedule_values}"
+            )
 
         scheduler = None
         # The shared native Euler loop consumes the already shifted schedule exactly as
@@ -155,6 +173,9 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         packed_mask = pack(inpaint_mask) if inpaint_mask is not None else None
         packed_noise = pack(noise) if noise is not None else None
         packed_latents = pack(latents)
+
+        if diagnostics_enabled:
+            log_tensor_fingerprint("denoise.initial_packed_latents", packed_latents)
 
         inpaint_extension = None
         if packed_mask is not None:
@@ -203,8 +224,13 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     step_callback=self._build_step_callback(context),
                     inpaint_extension=inpaint_extension,
                     allow_batched_cfg=not sequential_guidance,
+                    model_input_dtype=inference_dtype if fp32_sampler_state else None,
                 )
             else:
+                if fp32_sampler_state:
+                    raise ValueError(
+                        "Chroma experiment 'fp32_state' currently requires Euler CFG++ Beta"
+                    )
                 denoise_cfg_scale = cfg_scale
                 denoise_negative_extension = negative_extension
                 has_guided_steps = any(not math.isclose(scale, 1.0) for scale in cfg_scale)
@@ -238,7 +264,30 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     scheduler=scheduler,
                 )
 
+        if diagnostics_enabled:
+            log_tensor_fingerprint("denoise.final_packed_latents", packed_latents)
+
         return unpack(packed_latents.float(), self.height, self.width)
+
+    def _prepare_noise_tensor(
+        self, context: InvocationContext, inference_dtype: torch.dtype, device: torch.device
+    ) -> torch.Tensor:
+        # The Chroma reference path creates the random stream in CPU float32, then casts
+        # to the sampler/model dtype. Generating randn directly in float16 produces a
+        # different random stream for the same seed and materially changes Chroma output.
+        fp32_sampler_state = self.scheduler == "euler_cfg_pp_beta" or should_use_fp32_sampler_state()
+        target_dtype = torch.float32 if fp32_sampler_state else inference_dtype
+        if self.noise is not None:
+            return super()._prepare_noise_tensor(context, target_dtype, device)
+
+        return get_chroma_noise(
+            num_samples=1,
+            height=self.height,
+            width=self.width,
+            device=device,
+            dtype=target_dtype,
+            seed=self.seed,
+        )
 
     @staticmethod
     def _load_chroma_conditioning(

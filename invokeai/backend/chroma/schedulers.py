@@ -1,6 +1,8 @@
 import math
 from typing import Literal
 
+import torch
+
 from invokeai.backend.flux.schedulers import FLUX_SCHEDULER_LABELS
 
 CHROMA_SCHEDULER_NAME_VALUES = Literal["euler", "euler_cfg_pp_beta", "heun", "lcm"]
@@ -10,12 +12,14 @@ CHROMA_SCHEDULER_LABELS: dict[str, str] = {
     "euler_cfg_pp_beta": "Euler CFG++ (Beta)",
 }
 
-# Chroma's Beta preset samples a 1000-point rectified-flow sigma table with
-# Beta(0.6, 0.6) quantiles. The base table is [0.001, 0.002, ..., 1.000].
+# Chroma follows FLUX sampling in the reference implementation. Beta(0.6, 0.6)
+# quantiles select from a 10,000-point float32 ModelSamplingFlux table shifted by 1.15.
 # Keeping the inverse-CDF implementation local avoids adding SciPy solely for this schedule.
 _BETA_ALPHA = 0.6
 _BETA_BETA = 0.6
-_FLOW_TIMESTEPS = 1000
+_FLUX_TIMESTEPS = 10000
+_FLUX_SHIFT = 1.15
+
 
 def _beta_continued_fraction(a: float, b: float, x: float) -> float:
     """Evaluate the continued fraction used by the regularized incomplete beta function."""
@@ -103,16 +107,17 @@ def _beta_ppf(probability: float, a: float = _BETA_ALPHA, b: float = _BETA_BETA)
 
 
 def get_chroma_beta_schedule(num_steps: int) -> list[float]:
-    """Return Chroma's Beta(0.6, 0.6) discrete-flow sigma schedule.
+    """Return the reference Beta(0.6, 0.6) schedule used for Chroma.
 
-    Quantiles are mapped onto a 1000-point rectified-flow sigma table, rounded
-    with Python's ties-to-even ``round``, consecutive duplicate indices are
-    dropped, and a terminal zero is appended.
+    Quantiles select from the same 10,000-point float32 FLUX sigma table used by
+    the reference implementation. Consecutive duplicate indices are dropped and
+    a terminal zero is appended. The local inverse-CDF avoids a SciPy dependency.
     """
     if num_steps <= 0:
         raise ValueError("num_steps must be greater than zero")
 
-    total_timestep_index = _FLOW_TIMESTEPS - 1
+    total_timestep_index = _FLUX_TIMESTEPS - 1
+    shift = math.exp(_FLUX_SHIFT)
     sigmas: list[float] = []
     last_timestep_index = -1
     for step_index in range(num_steps):
@@ -120,8 +125,14 @@ def get_chroma_beta_schedule(num_steps: int) -> list[float]:
         quantile = _beta_ppf(probability)
         timestep_index = int(round(quantile * total_timestep_index))
         if timestep_index != last_timestep_index:
-            # The discrete-flow table maps index N to sigma=(N + 1) / 1000.
-            sigmas.append((timestep_index + 1) / _FLOW_TIMESTEPS)
+            # ModelSamplingFlux builds this table in torch.float32 from
+            # torch.arange(1, 10001) / 10000, then applies the Flux time shift.
+            timestep = torch.tensor(
+                (timestep_index + 1) / _FLUX_TIMESTEPS,
+                dtype=torch.float32,
+            )
+            sigma = shift / (shift + (1.0 / timestep - 1.0))
+            sigmas.append(float(sigma.item()))
         last_timestep_index = timestep_index
 
     sigmas.append(0.0)
