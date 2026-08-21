@@ -37,6 +37,7 @@ import {
   setAnimaScheduler,
   setCfgRescaleMultiplier,
   setCfgScale,
+  setChromaScheduler,
   setClipSkip,
   setFluxDypeExponent,
   setFluxDypePreset,
@@ -98,6 +99,7 @@ import { modelSelected } from 'features/parameters/store/actions';
 import type {
   ParameterCFGRescaleMultiplier,
   ParameterCFGScale,
+  ParameterChromaScheduler,
   ParameterCLIPSkip,
   ParameterFluxDypeExponent,
   ParameterFluxDypePreset,
@@ -125,6 +127,7 @@ import {
   zLoRAWeight,
   zParameterCFGRescaleMultiplier,
   zParameterCFGScale,
+  zParameterChromaScheduler,
   zParameterCLIPSkip,
   zParameterFluxDypeExponent,
   zParameterFluxDypePreset,
@@ -538,19 +541,23 @@ const FluxDypeExponent: SingleMetadataHandler<ParameterFluxDypeExponent> = {
 //#endregion FluxDypeExponent
 
 //#region Scheduler
-const Scheduler: SingleMetadataHandler<ParameterScheduler> = {
+const Scheduler: SingleMetadataHandler<ParameterScheduler | ParameterChromaScheduler> = {
   [SingleMetadataKey]: true,
   type: 'Scheduler',
   parse: (metadata, _store) => {
     const raw = getProperty(metadata, 'scheduler');
-    const parsed = zParameterScheduler.parse(raw);
+    const parsed = zParameterScheduler.or(zParameterChromaScheduler).parse(raw);
     return Promise.resolve(parsed);
   },
   recall: (value, store) => {
     // Dispatch to the appropriate scheduler based on the current model base
     const base = selectBase(store.getState());
-    if (base === 'chroma' || base === 'flux' || base === 'flux2') {
-      // Chroma, Flux and Flux2 (Klein) only support euler, heun, lcm
+    if (base === 'chroma') {
+      if (value === 'euler' || value === 'euler_cfg_pp_beta' || value === 'heun' || value === 'lcm') {
+        store.dispatch(setChromaScheduler(value));
+      }
+    } else if (base === 'flux' || base === 'flux2') {
+      // Flux and Flux2 (Klein) only support euler, heun, lcm
       if (value === 'euler' || value === 'heun' || value === 'lcm') {
         store.dispatch(setFluxScheduler(value));
       }
@@ -573,12 +580,17 @@ const Scheduler: SingleMetadataHandler<ParameterScheduler> = {
       }
     } else {
       // SD, SDXL, SD3, CogView4, etc. use the general scheduler
-      store.dispatch(setScheduler(value));
+      const parsed = zParameterScheduler.safeParse(value);
+      if (parsed.success) {
+        store.dispatch(setScheduler(parsed.data));
+      }
     }
   },
   i18nKey: 'metadata.scheduler',
   LabelComponent: MetadataLabel,
-  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterScheduler>) => <MetadataPrimitiveValue value={value} />,
+  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterScheduler | ParameterChromaScheduler>) => (
+    <MetadataPrimitiveValue value={value} />
+  ),
 };
 //#endregion Scheduler
 

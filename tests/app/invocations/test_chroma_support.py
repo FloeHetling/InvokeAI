@@ -172,8 +172,10 @@ def test_chroma_transformer_adapter_omits_an_all_true_attention_mask() -> None:
 
 
 def test_chroma_transformer_adapter_configures_the_model_numeric_contract(monkeypatch) -> None:
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-    monkeypatch.setattr(torch.backends.cudnn, "is_available", lambda: False)
+    # Having cuDNN available must not pin Chroma to the cuDNN-only SDPA backend. Some
+    # supported Chroma paths reach attention in FP32, which cuDNN SDPA rejects.
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.backends.cudnn, "is_available", lambda: True)
     model = ChromaTransformer2DModel(
         in_channels=4,
         out_channels=4,
@@ -198,6 +200,8 @@ def test_chroma_transformer_adapter_configures_the_model_numeric_contract(monkey
     assert double_block.attn.norm_added_k.eps is None
     assert single_block.attn.norm_q.eps is None
     assert single_block.attn.norm_k.eps is None
+    assert double_block.attn.processor._attention_backend is None
+    assert single_block.attn.processor._attention_backend is None
 
     hidden_states = torch.randn(1, 3, 8)
     embedding = torch.randn(1, 6, 8)
