@@ -1,4 +1,5 @@
 import math
+import os
 from contextlib import contextmanager
 from types import MethodType
 from typing import Any, cast
@@ -150,6 +151,27 @@ def _chroma_fp16_accumulation() -> Any:
         yield
     finally:
         matmul_backend.allow_fp16_accumulation = previous
+
+
+@contextmanager
+def _chroma_cudnn_attention_experiment(model: Any, *, enabled: bool) -> Any:
+    """Temporarily force Diffusers Chroma attention through cuDNN for parity testing."""
+    if not enabled:
+        yield
+        return
+
+    previous_backends: list[tuple[Any, Any]] = []
+    try:
+        blocks = [*model.transformer_blocks, *model.single_transformer_blocks]
+        for block in blocks:
+            attention = block.attn
+            processor = attention.processor
+            previous_backends.append((processor, getattr(processor, "_attention_backend", None)))
+            attention.set_attention_backend("_native_cudnn")
+        yield
+    finally:
+        for processor, previous_backend in previous_backends:
+            processor._attention_backend = previous_backend
 
 
 class ChromaTransformerAdapter:
@@ -637,6 +659,14 @@ class ChromaTransformerAdapter:
         # mask also lets the runtime use the preferred fused attention implementation.
         model_attention_mask = None if bool(torch.all(text_attention_mask).item()) else attention_mask
 
+        force_cudnn_attention = bool(
+            os.environ.get("CH_EXPERIMENT", "").strip().lower() == "cudnn_attention"
+            and isinstance(self.model, ChromaTransformer2DModel)
+            and img.device.type == "cuda"
+            and img.dtype == torch.float16
+            and model_attention_mask is None
+            and torch.backends.cudnn.is_available()
+        )
         runtime_handles: list[Any] = []
         chroma_cuda_input_vec: torch.Tensor | None = None
         if isinstance(self.model, ChromaTransformer2DModel):
@@ -650,7 +680,10 @@ class ChromaTransformerAdapter:
             runtime_handles.append(cast(Any, self.model).time_text_embed.register_forward_hook(replace_input_vec))
 
         try:
-            with _chroma_fp16_accumulation():
+            with (
+                _chroma_fp16_accumulation(),
+                _chroma_cudnn_attention_experiment(self.model, enabled=force_cudnn_attention),
+            ):
                 prediction = self.model(
                     hidden_states=img,
                     encoder_hidden_states=txt,
