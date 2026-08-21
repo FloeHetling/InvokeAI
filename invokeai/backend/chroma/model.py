@@ -110,14 +110,12 @@ def _chroma_double_block_forward(
     return encoder_hidden_states, hidden_states
 
 
-def _set_chroma_attention_contract(attention: Any, *, use_cudnn_attention: bool) -> None:
+def _set_chroma_attention_contract(attention: Any) -> None:
     # Chroma uses the input dtype's RMSNorm epsilon instead of Diffusers' fixed 1e-6.
     for name in ("norm_q", "norm_k", "norm_added_q", "norm_added_k"):
         norm = getattr(attention, name, None)
         if norm is not None:
             norm.eps = None
-    if use_cudnn_attention:
-        attention.set_attention_backend("_native_cudnn")
 
 
 def _configure_chroma_runtime_contract(model: Any) -> None:
@@ -125,24 +123,19 @@ def _configure_chroma_runtime_contract(model: Any) -> None:
     if getattr(model, "_invokeai_chroma_runtime_contract", False):
         return
 
-    use_cudnn_attention = bool(
-        torch.cuda.is_available() and torch.backends.cudnn.is_available()  # type: ignore[no-untyped-call]
-    )
     for block in model.transformer_blocks:
         block.norm1.forward = MethodType(_chroma_ada_layer_norm_zero_forward, block.norm1)
         block.norm1_context.forward = MethodType(_chroma_ada_layer_norm_zero_forward, block.norm1_context)
         block.forward = MethodType(_chroma_double_block_forward, block)
-        _set_chroma_attention_contract(block.attn, use_cudnn_attention=use_cudnn_attention)
+        _set_chroma_attention_contract(block.attn)
 
     for block in model.single_transformer_blocks:
         block.norm.forward = MethodType(_chroma_ada_layer_norm_zero_single_forward, block.norm)
-        _set_chroma_attention_contract(block.attn, use_cudnn_attention=use_cudnn_attention)
+        _set_chroma_attention_contract(block.attn)
 
     model.norm_out.forward = MethodType(_chroma_ada_layer_norm_continuous_forward, model.norm_out)
     model._invokeai_chroma_runtime_contract = True
-    InvokeAILogger.get_logger(__name__).info(
-        "Configured Chroma numerical runtime contract (cudnn_attention=%s)", use_cudnn_attention
-    )
+    InvokeAILogger.get_logger(__name__).info("Configured Chroma numerical runtime contract")
 
 
 @contextmanager
