@@ -171,6 +171,46 @@ def test_chroma_transformer_adapter_omits_an_all_true_attention_mask() -> None:
     assert model.call_args.kwargs["attention_mask"] is None
 
 
+def test_chroma_transformer_adapter_bridges_sampler_dtype_to_transformer_dtype() -> None:
+    model = MagicMock()
+    model_output = torch.randn(1, 4, 64, dtype=torch.float16)
+    model.return_value = (model_output,)
+    regional_prompting = SimpleNamespace(
+        restricted_attn_mask=None,
+        regional_text_conditioning=SimpleNamespace(
+            attention_mask=torch.ones(1, 3, dtype=torch.bool),
+        ),
+    )
+    img = torch.randn(1, 4, 64, dtype=torch.bfloat16)
+    img_ids = torch.zeros(1, 4, 3, dtype=torch.bfloat16)
+    txt = torch.randn(1, 3, 4096, dtype=torch.bfloat16)
+    txt_ids = torch.zeros(1, 3, 3, dtype=torch.bfloat16)
+
+    result = ChromaTransformerAdapter(model, model_input_dtype=torch.float16)(
+        img=img,
+        img_ids=img_ids,
+        txt=txt,
+        txt_ids=txt_ids,
+        y=torch.zeros(1, 768),
+        timesteps=torch.tensor([0.5], dtype=torch.bfloat16),
+        guidance=torch.zeros(1),
+        timestep_index=0,
+        total_num_timesteps=1,
+        controlnet_double_block_residuals=None,
+        controlnet_single_block_residuals=None,
+        ip_adapter_extensions=[],
+        regional_prompting_extension=regional_prompting,
+    )
+
+    call = model.call_args.kwargs
+    assert call["hidden_states"].dtype is torch.float16
+    assert call["encoder_hidden_states"].dtype is torch.float16
+    assert call["img_ids"].dtype is torch.float16
+    assert call["txt_ids"].dtype is torch.float16
+    assert result.dtype is torch.bfloat16
+    assert torch.equal(result, model_output.to(dtype=torch.bfloat16))
+
+
 def test_chroma_transformer_adapter_configures_the_model_numeric_contract(monkeypatch) -> None:
     # Having cuDNN available must not pin Chroma to the cuDNN-only SDPA backend. Some
     # supported Chroma paths reach attention in FP32, which cuDNN SDPA rejects.
