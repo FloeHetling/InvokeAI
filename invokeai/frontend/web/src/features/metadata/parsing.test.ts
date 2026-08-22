@@ -1,5 +1,5 @@
 import type { AppStore } from 'app/store/store';
-import { setHiDiffusionEnabled } from 'features/controlLayers/store/paramsSlice';
+import { setChromaScheduler, setHiDiffusionEnabled } from 'features/controlLayers/store/paramsSlice';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ImageMetadataHandlers, MetadataUtils, parseMetadataHandler } from './parsing';
@@ -13,6 +13,31 @@ const createMockStore = () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createStore = () => createMockStore() as any;
+
+describe('Chroma scheduler metadata parsing', () => {
+  it('parses and recalls the Chroma Beta scheduler from the image metadata', async () => {
+    const store = createStore();
+    const metadata = { model: { base: 'chroma' }, scheduler: 'euler_cfg_pp_beta' };
+
+    const parsed = await parseMetadataHandler(metadata, ImageMetadataHandlers.ChromaScheduler, store);
+    ImageMetadataHandlers.ChromaScheduler.recall(parsed, store);
+
+    expect(parsed).toBe('euler_cfg_pp_beta');
+    expect(store.dispatch).toHaveBeenCalledWith(setChromaScheduler('euler_cfg_pp_beta'));
+  });
+
+  it('does not render the generic scheduler handler for Chroma metadata', async () => {
+    const store = createStore();
+
+    await expect(
+      parseMetadataHandler(
+        { model: { base: 'chroma' }, scheduler: 'euler' },
+        ImageMetadataHandlers.Scheduler,
+        store
+      )
+    ).rejects.toThrow();
+  });
+});
 
 describe('Qwen metadata parsing', () => {
   it('normalizes synchronous parser throws into rejected promises', async () => {

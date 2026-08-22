@@ -194,7 +194,7 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             if not isinstance(transformer, ChromaTransformer2DModel):
                 raise TypeError(f"Expected ChromaTransformer2DModel, got {type(transformer).__name__}")
 
-            adapter = ChromaTransformerAdapter(transformer)
+            adapter = ChromaTransformerAdapter(transformer, model_input_dtype=transformer_dtype)
             sequential_guidance = context.config.get().sequential_guidance
             if self.scheduler == "euler_cfg_pp_beta":
                 if negative_extension is None:

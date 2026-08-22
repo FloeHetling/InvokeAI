@@ -541,22 +541,21 @@ const FluxDypeExponent: SingleMetadataHandler<ParameterFluxDypeExponent> = {
 //#endregion FluxDypeExponent
 
 //#region Scheduler
-const Scheduler: SingleMetadataHandler<ParameterScheduler | ParameterChromaScheduler> = {
+const Scheduler: SingleMetadataHandler<ParameterScheduler> = {
   [SingleMetadataKey]: true,
   type: 'Scheduler',
   parse: (metadata, _store) => {
+    const rawModel = getProperty(metadata, 'model');
+    const modelBase = (rawModel as { base?: unknown } | undefined)?.base;
+    assert(modelBase !== 'chroma', 'Scheduler handler does not apply to Chroma metadata');
     const raw = getProperty(metadata, 'scheduler');
-    const parsed = zParameterScheduler.or(zParameterChromaScheduler).parse(raw);
+    const parsed = zParameterScheduler.parse(raw);
     return Promise.resolve(parsed);
   },
   recall: (value, store) => {
     // Dispatch to the appropriate scheduler based on the current model base
     const base = selectBase(store.getState());
-    if (base === 'chroma') {
-      if (value === 'euler' || value === 'euler_cfg_pp_beta' || value === 'heun' || value === 'lcm') {
-        store.dispatch(setChromaScheduler(value));
-      }
-    } else if (base === 'flux' || base === 'flux2') {
+    if (base === 'flux' || base === 'flux2') {
       // Flux and Flux2 (Klein) only support euler, heun, lcm
       if (value === 'euler' || value === 'heun' || value === 'lcm') {
         store.dispatch(setFluxScheduler(value));
@@ -580,19 +579,35 @@ const Scheduler: SingleMetadataHandler<ParameterScheduler | ParameterChromaSched
       }
     } else {
       // SD, SDXL, SD3, CogView4, etc. use the general scheduler
-      const parsed = zParameterScheduler.safeParse(value);
-      if (parsed.success) {
-        store.dispatch(setScheduler(parsed.data));
-      }
+      store.dispatch(setScheduler(value));
     }
   },
   i18nKey: 'metadata.scheduler',
   LabelComponent: MetadataLabel,
-  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterScheduler | ParameterChromaScheduler>) => (
+  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterScheduler>) => <MetadataPrimitiveValue value={value} />,
+};
+//#endregion Scheduler
+
+//#region ChromaScheduler
+const ChromaScheduler: SingleMetadataHandler<ParameterChromaScheduler> = {
+  [SingleMetadataKey]: true,
+  type: 'ChromaScheduler',
+  parse: (metadata, _store) => {
+    assertMetadataModelBase(metadata, 'chroma', 'ChromaScheduler');
+    const raw = getProperty(metadata, 'scheduler');
+    const parsed = zParameterChromaScheduler.parse(raw);
+    return Promise.resolve(parsed);
+  },
+  recall: (value, store) => {
+    store.dispatch(setChromaScheduler(value));
+  },
+  i18nKey: 'metadata.scheduler',
+  LabelComponent: MetadataLabel,
+  ValueComponent: ({ value }: SingleMetadataValueProps<ParameterChromaScheduler>) => (
     <MetadataPrimitiveValue value={value} />
   ),
 };
-//#endregion Scheduler
+//#endregion ChromaScheduler
 
 //#region Width
 const Width: SingleMetadataHandler<ParameterWidth> = {
@@ -2320,6 +2335,7 @@ export const ImageMetadataHandlers = {
   MainModel,
   // Scheduler must be after MainModel so that base-dependent logic (z-image scheduler) works correctly
   Scheduler,
+  ChromaScheduler,
   VAEModel,
   Qwen3EncoderModel,
   T5EncoderModel,

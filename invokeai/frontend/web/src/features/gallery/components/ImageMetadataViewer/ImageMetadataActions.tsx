@@ -41,6 +41,7 @@ export const IMAGE_METADATA_ACTION_HANDLERS: ImageMetadataActionHandler[] = [
   ImageMetadataHandlers.Seed,
   ImageMetadataHandlers.Steps,
   ImageMetadataHandlers.Scheduler,
+  ImageMetadataHandlers.ChromaScheduler,
   ImageMetadataHandlers.CLIPSkip,
   ImageMetadataHandlers.CFGScale,
   ImageMetadataHandlers.CFGRescaleMultiplier,

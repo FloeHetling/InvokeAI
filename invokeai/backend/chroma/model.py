@@ -177,9 +177,10 @@ def _chroma_cudnn_attention_experiment(model: Any, *, enabled: bool) -> Any:
 class ChromaTransformerAdapter:
     """Adapt Diffusers' Chroma transformer to InvokeAI's rectified-flow denoiser interface."""
 
-    def __init__(self, model: ChromaTransformer2DModel):
+    def __init__(self, model: ChromaTransformer2DModel, *, model_input_dtype: torch.dtype | None = None):
         # Diffusers' generated type information omits Chroma's runtime modules and call operator.
         self.model = cast(Any, model)
+        self._model_input_dtype = model_input_dtype
         if isinstance(model, ChromaTransformer2DModel):
             _configure_chroma_runtime_contract(model)
         self._batched_cfg_negative_extension: RegionalPromptingExtension | None = None
@@ -644,6 +645,14 @@ class ChromaTransformerAdapter:
         timesteps: torch.Tensor,
         text_attention_mask: torch.Tensor,
     ) -> torch.Tensor:
+        prediction_dtype = img.dtype
+        incoming_img_dtype = img.dtype
+        if self._model_input_dtype is not None:
+            img = img.to(dtype=self._model_input_dtype)
+            img_ids = img_ids.to(dtype=self._model_input_dtype)
+            txt = txt.to(dtype=self._model_input_dtype)
+            txt_ids = txt_ids.to(dtype=self._model_input_dtype)
+
         attention_mask = torch.cat(
             [
                 text_attention_mask,
@@ -663,8 +672,7 @@ class ChromaTransformerAdapter:
             os.environ.get("CH_EXPERIMENT", "").strip().lower() == "cudnn_attention"
             and isinstance(self.model, ChromaTransformer2DModel)
             and img.device.type == "cuda"
-            and img.dtype == torch.float16
-            and model_attention_mask is None
+            and incoming_img_dtype == torch.float16
             and torch.backends.cudnn.is_available()
         )
         runtime_handles: list[Any] = []
@@ -699,4 +707,6 @@ class ChromaTransformerAdapter:
 
         if not isinstance(prediction, torch.Tensor):
             raise TypeError(f"Expected Chroma transformer tensor output, got {type(prediction).__name__}")
+        if prediction.dtype != prediction_dtype:
+            prediction = prediction.to(dtype=prediction_dtype)
         return prediction
