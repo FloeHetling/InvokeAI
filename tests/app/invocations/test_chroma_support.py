@@ -10,7 +10,11 @@ from invokeai.app.invocations.chroma_model_loader import ChromaModelLoaderInvoca
 from invokeai.app.invocations.model import ModelIdentifierField
 from invokeai.app.services.shared.graph import Graph
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp, euler_cfg_pp_step
-from invokeai.backend.chroma.model import ChromaTransformerAdapter
+from invokeai.backend.chroma.model import (
+    ChromaTransformerAdapter,
+    _chroma_ada_layer_norm_zero,
+    _should_use_chroma_cudnn_attention,
+)
 from invokeai.backend.model_manager.configs.main import Main_Diffusers_Chroma_Config
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelFormat, ModelType, SubModelType
 
@@ -211,7 +215,9 @@ def test_chroma_transformer_adapter_bridges_sampler_dtype_to_transformer_dtype()
     assert torch.equal(result, model_output.to(dtype=torch.bfloat16))
 
 
-def test_chroma_transformer_adapter_configures_the_model_numeric_contract(monkeypatch) -> None:
+def test_chroma_transformer_adapter_configures_the_model_numeric_contract_without_patching_forwards(
+    monkeypatch,
+) -> None:
     # Having cuDNN available must not pin Chroma to the cuDNN-only SDPA backend. Some
     # supported Chroma paths reach attention in FP32, which cuDNN SDPA rejects.
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
@@ -230,10 +236,20 @@ def test_chroma_transformer_adapter_configures_the_model_numeric_contract(monkey
         approximator_layers=1,
     )
 
-    ChromaTransformerAdapter(model)
-
     double_block = model.transformer_blocks[0]
     single_block = model.single_transformer_blocks[0]
+    modules_with_invoke_owned_execution = (
+        double_block,
+        double_block.norm1,
+        double_block.norm1_context,
+        single_block.norm,
+        model.norm_out,
+    )
+    assert all("forward" not in module.__dict__ for module in modules_with_invoke_owned_execution)
+
+    ChromaTransformerAdapter(model)
+
+    assert all("forward" not in module.__dict__ for module in modules_with_invoke_owned_execution)
     assert double_block.attn.norm_q.eps is None
     assert double_block.attn.norm_k.eps is None
     assert double_block.attn.norm_added_q.eps is None
@@ -245,10 +261,90 @@ def test_chroma_transformer_adapter_configures_the_model_numeric_contract(monkey
 
     hidden_states = torch.randn(1, 3, 8)
     embedding = torch.randn(1, 6, 8)
-    normalized, *_rest = double_block.norm1(hidden_states, emb=embedding)
+    normalized, *_rest = _chroma_ada_layer_norm_zero(double_block.norm1, hidden_states, emb=embedding)
     shift, scale, *_unused = embedding.flatten(1, 2).chunk(6, dim=1)
     expected = torch.addcmul(shift[:, None], double_block.norm1.norm(hidden_states), 1 + scale[:, None])
     assert torch.equal(normalized, expected)
+
+
+def test_chroma_transformer_adapter_executes_real_model_without_calling_diffusers_forward() -> None:
+    model = ChromaTransformer2DModel(
+        in_channels=4,
+        out_channels=4,
+        num_layers=1,
+        num_single_layers=1,
+        attention_head_dim=8,
+        num_attention_heads=1,
+        joint_attention_dim=12,
+        axes_dims_rope=(2, 2, 4),
+        approximator_num_channels=64,
+        approximator_hidden_dim=16,
+        approximator_layers=1,
+    )
+    adapter = ChromaTransformerAdapter(model)
+    model.forward = MagicMock(side_effect=AssertionError("Diffusers Chroma forward must not be called"))
+
+    prediction = adapter._forward_model(
+        img=torch.randn(1, 4, 4),
+        img_ids=torch.zeros(4, 3),
+        txt=torch.randn(1, 3, 12),
+        txt_ids=torch.zeros(3, 3),
+        timesteps=torch.tensor([0.5]),
+        text_attention_mask=torch.ones(1, 3, dtype=torch.bool),
+    )
+
+    assert prediction.shape == (1, 4, 4)
+    assert torch.isfinite(prediction).all()
+    model.forward.assert_not_called()
+
+
+def test_chroma_cudnn_attention_policy_is_scoped_to_fp16_cuda(monkeypatch) -> None:
+    monkeypatch.delenv("CH_EXPERIMENT", raising=False)
+    monkeypatch.setattr(torch.backends.cudnn, "is_available", lambda: True)
+    model = ChromaTransformer2DModel(
+        in_channels=4,
+        out_channels=4,
+        num_layers=1,
+        num_single_layers=1,
+        attention_head_dim=8,
+        num_attention_heads=1,
+        joint_attention_dim=12,
+        axes_dims_rope=(2, 2, 4),
+        approximator_num_channels=8,
+        approximator_hidden_dim=16,
+        approximator_layers=1,
+    ).to(dtype=torch.float16)
+
+    assert _should_use_chroma_cudnn_attention(
+        model,
+        sampler_input_dtype=torch.float16,
+        device_type="cuda",
+    )
+    assert not _should_use_chroma_cudnn_attention(
+        model,
+        sampler_input_dtype=torch.bfloat16,
+        device_type="cuda",
+    )
+    assert not _should_use_chroma_cudnn_attention(
+        model,
+        sampler_input_dtype=torch.float16,
+        device_type="cpu",
+    )
+
+    model.to(dtype=torch.float32)
+    assert not _should_use_chroma_cudnn_attention(
+        model,
+        sampler_input_dtype=torch.float16,
+        device_type="cuda",
+    )
+
+    model.to(dtype=torch.float16)
+    monkeypatch.setattr(torch.backends.cudnn, "is_available", lambda: False)
+    assert not _should_use_chroma_cudnn_attention(
+        model,
+        sampler_input_dtype=torch.float16,
+        device_type="cuda",
+    )
 
 
 def _chroma_cfg_extension(

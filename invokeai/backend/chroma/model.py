@@ -1,19 +1,24 @@
 import math
-import os
 from contextlib import contextmanager
-from types import MethodType
 from typing import Any, cast
 
 import torch
 from diffusers import ChromaTransformer2DModel
+from diffusers.models.transformers.transformer_chroma import (
+    ChromaAdaLayerNormContinuousPruned,
+    ChromaAdaLayerNormZeroPruned,
+    ChromaAdaLayerNormZeroSinglePruned,
+    ChromaSingleTransformerBlock,
+    ChromaTransformerBlock,
+)
 
 from invokeai.backend.flux.extensions.regional_prompting_extension import RegionalPromptingExtension
 from invokeai.backend.util.devices import TorchDevice
 from invokeai.backend.util.logging import InvokeAILogger
 
 
-def _chroma_ada_layer_norm_zero_forward(
-    module: Any,
+def _chroma_ada_layer_norm_zero(
+    module: ChromaAdaLayerNormZeroPruned,
     x: torch.Tensor,
     timestep: torch.Tensor | None = None,
     class_labels: torch.LongTensor | None = None,
@@ -30,8 +35,8 @@ def _chroma_ada_layer_norm_zero_forward(
     return normalized, gate_msa, shift_mlp, scale_mlp, gate_mlp
 
 
-def _chroma_ada_layer_norm_zero_single_forward(
-    module: Any,
+def _chroma_ada_layer_norm_zero_single(
+    module: ChromaAdaLayerNormZeroSinglePruned,
     x: torch.Tensor,
     emb: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -43,8 +48,8 @@ def _chroma_ada_layer_norm_zero_single_forward(
     return normalized, gate_msa
 
 
-def _chroma_ada_layer_norm_continuous_forward(
-    module: Any,
+def _chroma_ada_layer_norm_continuous(
+    module: ChromaAdaLayerNormContinuousPruned,
     x: torch.Tensor,
     emb: torch.Tensor,
 ) -> torch.Tensor:
@@ -53,8 +58,8 @@ def _chroma_ada_layer_norm_continuous_forward(
     return torch.addcmul(shift[:, None, :], normalized, (1 + scale)[:, None, :])
 
 
-def _chroma_double_block_forward(
-    block: Any,
+def _chroma_double_block(
+    block: ChromaTransformerBlock,
     hidden_states: torch.Tensor,
     encoder_hidden_states: torch.Tensor,
     temb: torch.Tensor,
@@ -64,9 +69,11 @@ def _chroma_double_block_forward(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Run a Chroma double block with fused FP16 AdaLN modulation."""
     temb_img, temb_txt = temb[:, :6], temb[:, 6:]
-    norm_hidden_states, gate_msa, shift_mlp, scale_mlp, gate_mlp = block.norm1(hidden_states, emb=temb_img)
-    norm_encoder_hidden_states, c_gate_msa, c_shift_mlp, c_scale_mlp, c_gate_mlp = block.norm1_context(
-        encoder_hidden_states, emb=temb_txt
+    norm_hidden_states, gate_msa, shift_mlp, scale_mlp, gate_mlp = _chroma_ada_layer_norm_zero(
+        block.norm1, hidden_states, emb=temb_img
+    )
+    norm_encoder_hidden_states, c_gate_msa, c_shift_mlp, c_scale_mlp, c_gate_mlp = _chroma_ada_layer_norm_zero(
+        block.norm1_context, encoder_hidden_states, emb=temb_txt
     )
     joint_attention_kwargs = joint_attention_kwargs or {}
     if attention_mask is not None:
@@ -111,6 +118,36 @@ def _chroma_double_block_forward(
     return encoder_hidden_states, hidden_states
 
 
+def _chroma_single_block(
+    block: ChromaSingleTransformerBlock,
+    hidden_states: torch.Tensor,
+    temb: torch.Tensor,
+    image_rotary_emb: tuple[torch.Tensor, torch.Tensor] | None = None,
+    attention_mask: torch.Tensor | None = None,
+    joint_attention_kwargs: dict[str, Any] | None = None,
+) -> torch.Tensor:
+    """Run a Chroma single block with fused FP16 AdaLN modulation."""
+    residual = hidden_states
+    norm_hidden_states, gate = _chroma_ada_layer_norm_zero_single(block.norm, hidden_states, emb=temb)
+    mlp_hidden_states = block.act_mlp(block.proj_mlp(norm_hidden_states))
+    joint_attention_kwargs = joint_attention_kwargs or {}
+
+    if attention_mask is not None:
+        attention_mask = attention_mask[:, None, None, :] * attention_mask[:, None, :, None]
+
+    attn_output = block.attn(
+        hidden_states=norm_hidden_states,
+        image_rotary_emb=image_rotary_emb,
+        attention_mask=attention_mask,
+        **joint_attention_kwargs,
+    )
+    hidden_states = torch.cat([attn_output, mlp_hidden_states], dim=2)
+    hidden_states = residual + gate.unsqueeze(1) * block.proj_out(hidden_states)
+    if hidden_states.dtype == torch.float16:
+        hidden_states = hidden_states.clip(-65504, 65504)
+    return hidden_states
+
+
 def _set_chroma_attention_contract(attention: Any) -> None:
     # Chroma uses the input dtype's RMSNorm epsilon instead of Diffusers' fixed 1e-6.
     for name in ("norm_q", "norm_k", "norm_added_q", "norm_added_k"):
@@ -119,24 +156,78 @@ def _set_chroma_attention_contract(attention: Any) -> None:
             norm.eps = None
 
 
-def _configure_chroma_runtime_contract(model: Any) -> None:
-    """Apply Chroma's FP16 arithmetic contract to a Diffusers transformer instance."""
-    if getattr(model, "_invokeai_chroma_runtime_contract", False):
-        return
+class InvokeAIChromaTransformerExecutor:
+    """Execute a Diffusers Chroma transformer's modules with InvokeAI-owned numerical semantics.
 
-    for block in model.transformer_blocks:
-        block.norm1.forward = MethodType(_chroma_ada_layer_norm_zero_forward, block.norm1)
-        block.norm1_context.forward = MethodType(_chroma_ada_layer_norm_zero_forward, block.norm1_context)
-        block.forward = MethodType(_chroma_double_block_forward, block)
-        _set_chroma_attention_contract(block.attn)
+    Chroma FP16 parity depends on fused ``torch.addcmul`` modulation and dtype-local
+    RMSNorm epsilon selection. Diffusers exposes the correct weights and module layout,
+    but its public forward uses a different arithmetic decomposition. Keeping the
+    execution here makes that dependency explicit and avoids mutating module ``forward``
+    methods at runtime.
+    """
 
-    for block in model.single_transformer_blocks:
-        block.norm.forward = MethodType(_chroma_ada_layer_norm_zero_single_forward, block.norm)
-        _set_chroma_attention_contract(block.attn)
+    def __init__(self, model: ChromaTransformer2DModel):
+        self.model = cast(Any, model)
+        for block in self.model.transformer_blocks:
+            _set_chroma_attention_contract(block.attn)
+        for block in self.model.single_transformer_blocks:
+            _set_chroma_attention_contract(block.attn)
 
-    model.norm_out.forward = MethodType(_chroma_ada_layer_norm_continuous_forward, model.norm_out)
-    model._invokeai_chroma_runtime_contract = True
-    InvokeAILogger.get_logger(__name__).info("Configured Chroma numerical runtime contract")
+    def __call__(
+        self,
+        *,
+        hidden_states: torch.Tensor,
+        encoder_hidden_states: torch.Tensor,
+        img_ids: torch.Tensor,
+        txt_ids: torch.Tensor,
+        modulation_input: torch.Tensor,
+        attention_mask: torch.Tensor | None,
+    ) -> torch.Tensor:
+        hidden_states = self.model.x_embedder(hidden_states)
+        pooled_temb = self.model.distilled_guidance_layer(modulation_input)
+        encoder_hidden_states = self.model.context_embedder(encoder_hidden_states)
+
+        ids = torch.cat((txt_ids, img_ids), dim=0)
+        image_rotary_emb = self.model.pos_embed(ids)
+
+        img_offset = 3 * len(self.model.single_transformer_blocks)
+        txt_offset = img_offset + 6 * len(self.model.transformer_blocks)
+        for index_block, block in enumerate(self.model.transformer_blocks):
+            img_modulation = img_offset + 6 * index_block
+            text_modulation = txt_offset + 6 * index_block
+            temb = torch.cat(
+                (
+                    pooled_temb[:, img_modulation : img_modulation + 6],
+                    pooled_temb[:, text_modulation : text_modulation + 6],
+                ),
+                dim=1,
+            )
+            encoder_hidden_states, hidden_states = _chroma_double_block(
+                block=block,
+                hidden_states=hidden_states,
+                encoder_hidden_states=encoder_hidden_states,
+                temb=temb,
+                image_rotary_emb=image_rotary_emb,
+                attention_mask=attention_mask,
+            )
+
+        hidden_states = torch.cat([encoder_hidden_states, hidden_states], dim=1)
+        for index_block, block in enumerate(self.model.single_transformer_blocks):
+            start_idx = 3 * index_block
+            hidden_states = _chroma_single_block(
+                block=block,
+                hidden_states=hidden_states,
+                temb=pooled_temb[:, start_idx : start_idx + 3],
+                image_rotary_emb=image_rotary_emb,
+                attention_mask=attention_mask,
+            )
+
+        hidden_states = hidden_states[:, encoder_hidden_states.shape[1] :, ...]
+        hidden_states = _chroma_ada_layer_norm_continuous(self.model.norm_out, hidden_states, pooled_temb[:, -2:])
+        output = self.model.proj_out(hidden_states)
+        if not isinstance(output, torch.Tensor):
+            raise TypeError(f"Expected Chroma executor tensor output, got {type(output).__name__}")
+        return output
 
 
 @contextmanager
@@ -153,9 +244,26 @@ def _chroma_fp16_accumulation() -> Any:
         matmul_backend.allow_fp16_accumulation = previous
 
 
+def _should_use_chroma_cudnn_attention(
+    model: Any,
+    *,
+    sampler_input_dtype: torch.dtype,
+    device_type: str,
+) -> bool:
+    """Use cuDNN only for the reference-compatible FP16 Chroma execution path."""
+    if not isinstance(model, ChromaTransformer2DModel):
+        return False
+    if device_type != "cuda" or sampler_input_dtype != torch.float16:
+        return False
+    model_weight = getattr(getattr(model, "x_embedder", None), "weight", None)
+    if model_weight is None or model_weight.dtype != torch.float16:
+        return False
+    return bool(cast(Any, torch.backends.cudnn).is_available())
+
+
 @contextmanager
-def _chroma_cudnn_attention_experiment(model: Any, *, enabled: bool) -> Any:
-    """Temporarily force Diffusers Chroma attention through cuDNN for parity testing."""
+def _chroma_cudnn_attention(model: Any, *, enabled: bool) -> Any:
+    """Temporarily use cuDNN attention for a capability-checked Chroma forward."""
     if not enabled:
         yield
         return
@@ -181,8 +289,9 @@ class ChromaTransformerAdapter:
         # Diffusers' generated type information omits Chroma's runtime modules and call operator.
         self.model = cast(Any, model)
         self._model_input_dtype = model_input_dtype
-        if isinstance(model, ChromaTransformer2DModel):
-            _configure_chroma_runtime_contract(model)
+        self._executor = (
+            InvokeAIChromaTransformerExecutor(model) if isinstance(model, ChromaTransformer2DModel) else None
+        )
         self._batched_cfg_negative_extension: RegionalPromptingExtension | None = None
         self._batched_cfg_scale: list[float] | None = None
         self._batched_cfg_disabled = False
@@ -668,30 +777,31 @@ class ChromaTransformerAdapter:
         # mask also lets the runtime use the preferred fused attention implementation.
         model_attention_mask = None if bool(torch.all(text_attention_mask).item()) else attention_mask
 
-        force_cudnn_attention = bool(
-            os.environ.get("CH_EXPERIMENT", "").strip().lower() == "cudnn_attention"
-            and isinstance(self.model, ChromaTransformer2DModel)
-            and img.device.type == "cuda"
-            and incoming_img_dtype == torch.float16
-            and torch.backends.cudnn.is_available()
+        use_cudnn_attention = _should_use_chroma_cudnn_attention(
+            self.model,
+            sampler_input_dtype=incoming_img_dtype,
+            device_type=img.device.type,
         )
-        runtime_handles: list[Any] = []
         chroma_cuda_input_vec: torch.Tensor | None = None
-        if isinstance(self.model, ChromaTransformer2DModel):
+        if self._executor is not None:
             chroma_cuda_input_vec = self._build_chroma_cuda_input_vec(timesteps, img)
 
-            def replace_input_vec(_module: Any, _args: Any, _output: Any) -> torch.Tensor:
+        with (
+            _chroma_fp16_accumulation(),
+            _chroma_cudnn_attention(self.model, enabled=use_cudnn_attention),
+        ):
+            if self._executor is not None:
                 if chroma_cuda_input_vec is None:
                     raise RuntimeError("Missing Chroma modulation input")
-                return chroma_cuda_input_vec
-
-            runtime_handles.append(cast(Any, self.model).time_text_embed.register_forward_hook(replace_input_vec))
-
-        try:
-            with (
-                _chroma_fp16_accumulation(),
-                _chroma_cudnn_attention_experiment(self.model, enabled=force_cudnn_attention),
-            ):
+                prediction = self._executor(
+                    hidden_states=img,
+                    encoder_hidden_states=txt,
+                    img_ids=img_ids,
+                    txt_ids=txt_ids,
+                    modulation_input=chroma_cuda_input_vec,
+                    attention_mask=model_attention_mask,
+                )
+            else:
                 prediction = self.model(
                     hidden_states=img,
                     encoder_hidden_states=txt,
@@ -701,9 +811,6 @@ class ChromaTransformerAdapter:
                     attention_mask=model_attention_mask,
                     return_dict=False,
                 )[0]
-        finally:
-            for handle in runtime_handles:
-                handle.remove()
 
         if not isinstance(prediction, torch.Tensor):
             raise TypeError(f"Expected Chroma transformer tensor output, got {type(prediction).__name__}")
