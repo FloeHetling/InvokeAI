@@ -9,12 +9,10 @@ from invokeai.app.invocations.chroma_denoise import ChromaDenoiseInvocation
 from invokeai.app.invocations.chroma_model_loader import ChromaModelLoaderInvocation
 from invokeai.app.invocations.model import ModelIdentifierField
 from invokeai.app.services.shared.graph import Graph
+from invokeai.backend.chroma.attention import _should_use_chroma_cudnn_attention
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp, euler_cfg_pp_step
-from invokeai.backend.chroma.model import (
-    ChromaTransformerAdapter,
-    _chroma_ada_layer_norm_zero,
-    _should_use_chroma_cudnn_attention,
-)
+from invokeai.backend.chroma.executor import _chroma_ada_layer_norm_zero
+from invokeai.backend.chroma.model import ChromaTransformerAdapter
 from invokeai.backend.model_manager.configs.main import Main_Diffusers_Chroma_Config
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelFormat, ModelType, SubModelType
 
