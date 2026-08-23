@@ -1,6 +1,6 @@
 from contextlib import ExitStack, contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Iterator, Optional
+from typing import Iterator
 
 import torch
 from transformers import PreTrainedTokenizerBase, T5EncoderModel
@@ -11,7 +11,6 @@ from invokeai.app.invocations.fields import (
     FluxConditioningField,
     Input,
     InputField,
-    TensorField,
     UIComponent,
 )
 from invokeai.app.invocations.model import T5EncoderField
@@ -90,10 +89,6 @@ class ChromaTextEncoderInvocation(BaseInvocation):
         input=Input.Connection,
     )
     prompt: str = InputField(description="Text prompt to encode.", ui_component=UIComponent.Textarea)
-    mask: Optional[TensorField] = InputField(
-        default=None,
-        description="A mask defining the region that this conditioning prompt applies to.",
-    )
 
     @classmethod
     def _parse_prompt_attention(cls, prompt: str, weight: float = 1.0) -> list[tuple[str, float]]:
@@ -309,9 +304,7 @@ class ChromaTextEncoderInvocation(BaseInvocation):
             ]
         )
         conditioning_name = context.conditioning.save(conditioning_data)
-        return FluxConditioningOutput(
-            conditioning=FluxConditioningField(conditioning_name=conditioning_name, mask=self.mask)
-        )
+        return FluxConditioningOutput(conditioning=FluxConditioningField(conditioning_name=conditioning_name))
 
     def _t5_lora_iterator(self, context: InvocationContext) -> Iterator[PatchSpec]:
         for lora in self.t5_encoder.loras:

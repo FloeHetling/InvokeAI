@@ -6,6 +6,7 @@ import torch
 
 from invokeai.app.invocations.chroma_denoise import ChromaDenoiseInvocation
 from invokeai.app.invocations.chroma_model_loader import ChromaModelLoaderInvocation
+from invokeai.app.invocations.chroma_text_encoder import ChromaTextEncoderInvocation
 from invokeai.app.invocations.model import ModelIdentifierField
 from invokeai.app.services.shared.graph import Graph
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp, euler_cfg_pp_step
@@ -50,6 +51,12 @@ def test_chroma_denoise_migrates_legacy_cfg_pp_scheduler() -> None:
     assert isinstance(invocation, ChromaDenoiseInvocation)
     assert invocation.scheduler == "euler_cfg_pp_beta"
     assert scheduler_schema["enum"] == ["euler", "euler_cfg_pp_beta", "heun", "lcm"]
+
+
+def test_chroma_text_encoder_does_not_expose_unsupported_regional_mask() -> None:
+    schema = ChromaTextEncoderInvocation.model_json_schema()
+
+    assert "mask" not in schema["properties"]
 
 
 def test_complete_chroma_pipeline_supplies_transformer_t5_and_vae() -> None:

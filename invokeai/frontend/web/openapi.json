@@ -19688,22 +19688,6 @@
             "title": "Prompt",
             "ui_component": "textarea"
           },
-          "mask": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TensorField"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "A mask defining the region that this conditioning prompt applies to.",
-            "field_kind": "input",
-            "input": "any",
-            "orig_default": null,
-            "orig_required": false
-          },
           "type": {
             "const": "chroma_text_encoder",
             "default": "chroma_text_encoder",
