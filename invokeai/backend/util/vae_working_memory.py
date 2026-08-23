@@ -77,9 +77,9 @@ def estimate_vae_working_memory_cogview4(
 
 
 def estimate_vae_working_memory_flux(
-    operation: Literal["encode", "decode"], image_tensor: torch.Tensor, vae: AutoEncoder
+    operation: Literal["encode", "decode"], image_tensor: torch.Tensor, vae: AutoEncoder | AutoencoderKL
 ) -> int:
-    """Estimate the working memory required by the invocation in bytes."""
+    """Estimate working memory for the BFL or Diffusers implementation of the FLUX VAE."""
 
     latent_scale_factor_for_operation = LATENT_SCALE_FACTOR if operation == "decode" else 1
 
