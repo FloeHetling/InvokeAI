@@ -1,3 +1,10 @@
+"""InvokeAI-owned numerical execution semantics for Diffusers Chroma modules.
+
+Diffusers remains responsible for model construction, weights, and module definitions.
+This module owns only the operations whose FP16 rounding/runtime semantics must remain
+aligned with the reference Chroma execution path.
+"""
+
 from contextlib import contextmanager
 from typing import Any, cast
 
@@ -26,6 +33,8 @@ def _chroma_ada_layer_norm_zero(
         raise ValueError("Chroma adaptive normalization requires an embedding")
     shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = emb.flatten(1, 2).chunk(6, dim=1)
     normalized = module.norm(x)
+    # Keep this modulation fused. In FP16, ``addcmul`` is not bit-equivalent to
+    # multiplying and adding separately; the latter changes the first-block trajectory.
     normalized = torch.addcmul(shift_msa[:, None], normalized, 1 + scale_msa[:, None])
     return normalized, gate_msa, shift_mlp, scale_mlp, gate_mlp
 
@@ -144,7 +153,8 @@ def _chroma_single_block(
 
 
 def _set_chroma_attention_contract(attention: Any) -> None:
-    # Chroma uses the input dtype's RMSNorm epsilon instead of Diffusers' fixed 1e-6.
+    # ``eps=None`` makes PyTorch choose the input dtype's epsilon. In FP16 this differs
+    # materially from Diffusers' fixed 1e-6 and preserves the reference Chroma Q/K norms.
     for name in ("norm_q", "norm_k", "norm_added_q", "norm_added_k"):
         norm = getattr(attention, name, None)
         if norm is not None:
@@ -227,6 +237,7 @@ class InvokeAIChromaTransformerExecutor:
 
 @contextmanager
 def _chroma_fp16_accumulation() -> Any:
+    """Match Chroma's reference FP16 GEMM accumulation policy for this forward only."""
     matmul_backend = torch.backends.cuda.matmul
     if not hasattr(matmul_backend, "allow_fp16_accumulation"):
         yield

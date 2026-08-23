@@ -442,7 +442,12 @@ class ChromaTransformerAdapter:
         max_period: int = 10000,
         time_factor: float = 1000.0,
     ) -> torch.Tensor:
-        """Build the Chroma sinusoidal embedding on the input tensor's device."""
+        """Build the Chroma sinusoidal embedding on the input tensor's device.
+
+        Keeping frequency/trigonometric evaluation device-local is intentional: moving
+        this construction through a host/precomputed path changes FP16 rounding before
+        the first transformer block.
+        """
         t = time_factor * t
         half = dim // 2
         freqs = torch.exp(
@@ -457,7 +462,11 @@ class ChromaTransformerAdapter:
         return embedding
 
     def _build_chroma_cuda_input_vec(self, timesteps: torch.Tensor, img: torch.Tensor) -> torch.Tensor:
-        """Build Chroma's modulation input on the model device."""
+        """Build Chroma's 344x64 modulation input on the model device and dtype.
+
+        This intentionally bypasses Diffusers' timestep helper. Reference-parity probes
+        showed that the alternate construction changes ``input_vec`` before block 0.
+        """
         mod_index_length = 344
         distill_timestep = self._chroma_timestep_embedding(timesteps.detach().clone(), 16).to(
             device=img.device, dtype=img.dtype

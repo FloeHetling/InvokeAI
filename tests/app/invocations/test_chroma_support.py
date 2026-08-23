@@ -9,9 +9,12 @@ from invokeai.app.invocations.chroma_denoise import ChromaDenoiseInvocation
 from invokeai.app.invocations.chroma_model_loader import ChromaModelLoaderInvocation
 from invokeai.app.invocations.model import ModelIdentifierField
 from invokeai.app.services.shared.graph import Graph
-from invokeai.backend.chroma.attention import _should_use_chroma_cudnn_attention
+from invokeai.backend.chroma.attention import (
+    _is_chroma_cudnn_backend_unavailable_error,
+    _should_use_chroma_cudnn_attention,
+)
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp, euler_cfg_pp_step
-from invokeai.backend.chroma.executor import _chroma_ada_layer_norm_zero
+from invokeai.backend.chroma.executor import _chroma_ada_layer_norm_zero, _chroma_fp16_accumulation
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
 from invokeai.backend.model_manager.configs.main import Main_Diffusers_Chroma_Config
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelFormat, ModelType, SubModelType
@@ -265,6 +268,54 @@ def test_chroma_transformer_adapter_configures_the_model_numeric_contract_withou
     assert torch.equal(normalized, expected)
 
 
+def test_chroma_adaln_preserves_fused_fp16_rounding() -> None:
+    module = SimpleNamespace(emb=None, norm=lambda value: value)
+    hidden_states = torch.tensor([[[0.1]]], dtype=torch.float16)
+    embedding = torch.zeros((1, 6, 1), dtype=torch.float16)
+    embedding[:, 0, :] = 0.1
+    embedding[:, 1, :] = 0.5
+
+    normalized, *_rest = _chroma_ada_layer_norm_zero(module, hidden_states, emb=embedding)
+    shift, scale, *_unused = embedding.flatten(1, 2).chunk(6, dim=1)
+    fused = torch.addcmul(shift[:, None], hidden_states, 1 + scale[:, None])
+    decomposed = shift[:, None] + hidden_states * (1 + scale[:, None])
+
+    assert torch.equal(normalized, fused)
+    assert not torch.equal(normalized, decomposed)
+
+
+def test_chroma_fp16_accumulation_context_enables_and_restores_runtime_flag() -> None:
+    matmul_backend = torch.backends.cuda.matmul
+    if not hasattr(matmul_backend, "allow_fp16_accumulation"):
+        pytest.skip("This PyTorch build does not expose FP16 accumulation control")
+
+    previous = matmul_backend.allow_fp16_accumulation
+    try:
+        matmul_backend.allow_fp16_accumulation = False
+        with _chroma_fp16_accumulation():
+            assert matmul_backend.allow_fp16_accumulation is True
+        assert matmul_backend.allow_fp16_accumulation is False
+    finally:
+        matmul_backend.allow_fp16_accumulation = previous
+
+
+def test_chroma_modulation_input_preserves_reference_device_dtype_and_layout() -> None:
+    adapter = ChromaTransformerAdapter(MagicMock())
+    img = torch.zeros((2, 4, 64), dtype=torch.float16)
+    timesteps = torch.tensor([0.25, 0.75], dtype=torch.float32)
+
+    input_vec = adapter._build_chroma_cuda_input_vec(timesteps, img)
+
+    assert input_vec.shape == (2, 344, 64)
+    assert input_vec.dtype is img.dtype
+    assert input_vec.device == img.device
+    assert torch.equal(input_vec[:, 0, :32], input_vec[:, -1, :32])
+    assert not torch.equal(input_vec[0, 0, :16], input_vec[1, 0, :16])
+    assert torch.equal(input_vec[:, 0, 16:24], torch.ones((2, 8), dtype=img.dtype))
+    assert torch.equal(input_vec[:, 0, 24:32], torch.zeros((2, 8), dtype=img.dtype))
+    assert not torch.equal(input_vec[0, 0, 32:], input_vec[0, 1, 32:])
+
+
 def test_chroma_transformer_adapter_executes_real_model_without_calling_diffusers_forward() -> None:
     model = ChromaTransformer2DModel(
         in_channels=4,
@@ -343,6 +394,24 @@ def test_chroma_cudnn_attention_policy_is_scoped_to_fp16_cuda(monkeypatch) -> No
         sampler_input_dtype=torch.float16,
         device_type="cuda",
     )
+
+
+@pytest.mark.parametrize(
+    "message",
+    (
+        "No available kernel. Aborting execution.",
+        "No valid execution plans support the graph.",
+        "CUDNN_STATUS_NOT_SUPPORTED",
+        "CUDNN_STATUS_ARCH_MISMATCH",
+    ),
+)
+def test_chroma_cudnn_fallback_classifies_only_backend_unavailable_errors(message: str) -> None:
+    assert _is_chroma_cudnn_backend_unavailable_error(RuntimeError(message))
+
+
+def test_chroma_cudnn_fallback_does_not_swallow_unrelated_runtime_errors() -> None:
+    assert not _is_chroma_cudnn_backend_unavailable_error(RuntimeError("CUDA out of memory"))
+    assert not _is_chroma_cudnn_backend_unavailable_error(RuntimeError("unexpected tensor shape"))
 
 
 def _chroma_cfg_extension(
