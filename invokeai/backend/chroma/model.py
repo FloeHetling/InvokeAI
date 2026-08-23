@@ -461,7 +461,7 @@ class ChromaTransformerAdapter:
             embedding = embedding.to(t)
         return embedding
 
-    def _build_chroma_cuda_input_vec(self, timesteps: torch.Tensor, img: torch.Tensor) -> torch.Tensor:
+    def _build_chroma_modulation_input(self, timesteps: torch.Tensor, img: torch.Tensor) -> torch.Tensor:
         """Build Chroma's 344x64 modulation input on the model device and dtype.
 
         This intentionally bypasses Diffusers' timestep helper. Reference-parity probes
@@ -525,20 +525,20 @@ class ChromaTransformerAdapter:
             sampler_input_dtype=incoming_img_dtype,
             device_type=img.device.type,
         )
-        chroma_cuda_input_vec: torch.Tensor | None = None
+        chroma_modulation_input: torch.Tensor | None = None
         if self._executor is not None:
-            chroma_cuda_input_vec = self._build_chroma_cuda_input_vec(timesteps, img)
+            chroma_modulation_input = self._build_chroma_modulation_input(timesteps, img)
 
         def run_model_forward() -> torch.Tensor:
             if self._executor is not None:
-                if chroma_cuda_input_vec is None:
+                if chroma_modulation_input is None:
                     raise RuntimeError("Missing Chroma modulation input")
                 return self._executor(
                     hidden_states=img,
                     encoder_hidden_states=txt,
                     img_ids=img_ids,
                     txt_ids=txt_ids,
-                    modulation_input=chroma_cuda_input_vec,
+                    modulation_input=chroma_modulation_input,
                     attention_mask=model_attention_mask,
                 )
 

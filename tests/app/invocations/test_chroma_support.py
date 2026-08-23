@@ -304,7 +304,7 @@ def test_chroma_modulation_input_preserves_reference_device_dtype_and_layout() -
     img = torch.zeros((2, 4, 64), dtype=torch.float16)
     timesteps = torch.tensor([0.25, 0.75], dtype=torch.float32)
 
-    input_vec = adapter._build_chroma_cuda_input_vec(timesteps, img)
+    input_vec = adapter._build_chroma_modulation_input(timesteps, img)
 
     assert input_vec.shape == (2, 344, 64)
     assert input_vec.dtype is img.dtype
