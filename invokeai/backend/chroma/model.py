@@ -282,6 +282,23 @@ def _chroma_cudnn_attention(model: Any, *, enabled: bool) -> Any:
             processor._attention_backend = previous_backend
 
 
+def _is_chroma_cudnn_backend_unavailable_error(error: RuntimeError) -> bool:
+    """Return whether a RuntimeError indicates that cuDNN SDPA cannot serve this input.
+
+    Do not treat arbitrary CUDA/model failures as an attention-backend compatibility
+    issue. The caller may retry only these known "no supported plan/kernel" failures.
+    """
+    message = str(error).lower()
+    unavailable_markers = (
+        "no available kernel",
+        "no valid execution plans support the graph",
+        "no execution plans support the graph",
+        "cudnn_status_not_supported",
+        "cudnn_status_arch_mismatch",
+    )
+    return any(marker in message for marker in unavailable_markers)
+
+
 class ChromaTransformerAdapter:
     """Adapt Diffusers' Chroma transformer to InvokeAI's rectified-flow denoiser interface."""
 
@@ -295,6 +312,7 @@ class ChromaTransformerAdapter:
         self._batched_cfg_negative_extension: RegionalPromptingExtension | None = None
         self._batched_cfg_scale: list[float] | None = None
         self._batched_cfg_disabled = False
+        self._cudnn_attention_disabled = False
 
     def enable_batched_cfg(
         self,
@@ -777,7 +795,7 @@ class ChromaTransformerAdapter:
         # mask also lets the runtime use the preferred fused attention implementation.
         model_attention_mask = None if bool(torch.all(text_attention_mask).item()) else attention_mask
 
-        use_cudnn_attention = _should_use_chroma_cudnn_attention(
+        use_cudnn_attention = not self._cudnn_attention_disabled and _should_use_chroma_cudnn_attention(
             self.model,
             sampler_input_dtype=incoming_img_dtype,
             device_type=img.device.type,
@@ -786,14 +804,11 @@ class ChromaTransformerAdapter:
         if self._executor is not None:
             chroma_cuda_input_vec = self._build_chroma_cuda_input_vec(timesteps, img)
 
-        with (
-            _chroma_fp16_accumulation(),
-            _chroma_cudnn_attention(self.model, enabled=use_cudnn_attention),
-        ):
+        def run_model_forward() -> torch.Tensor:
             if self._executor is not None:
                 if chroma_cuda_input_vec is None:
                     raise RuntimeError("Missing Chroma modulation input")
-                prediction = self._executor(
+                return self._executor(
                     hidden_states=img,
                     encoder_hidden_states=txt,
                     img_ids=img_ids,
@@ -801,16 +816,37 @@ class ChromaTransformerAdapter:
                     modulation_input=chroma_cuda_input_vec,
                     attention_mask=model_attention_mask,
                 )
+
+            output = self.model(
+                hidden_states=img,
+                encoder_hidden_states=txt,
+                timestep=timesteps,
+                img_ids=img_ids,
+                txt_ids=txt_ids,
+                attention_mask=model_attention_mask,
+                return_dict=False,
+            )[0]
+            if not isinstance(output, torch.Tensor):
+                raise TypeError(f"Expected Chroma transformer tensor output, got {type(output).__name__}")
+            return output
+
+        with _chroma_fp16_accumulation():
+            if use_cudnn_attention:
+                try:
+                    with _chroma_cudnn_attention(self.model, enabled=True):
+                        prediction = run_model_forward()
+                except RuntimeError as error:
+                    if not _is_chroma_cudnn_backend_unavailable_error(error):
+                        raise
+                    self._cudnn_attention_disabled = True
+                    InvokeAILogger.get_logger(__name__).warning(
+                        "Chroma cuDNN attention is unavailable for this input; retrying with the "
+                        "previous attention backend for the rest of this denoise: %s",
+                        error,
+                    )
+                    prediction = run_model_forward()
             else:
-                prediction = self.model(
-                    hidden_states=img,
-                    encoder_hidden_states=txt,
-                    timestep=timesteps,
-                    img_ids=img_ids,
-                    txt_ids=txt_ids,
-                    attention_mask=model_attention_mask,
-                    return_dict=False,
-                )[0]
+                prediction = run_model_forward()
 
         if not isinstance(prediction, torch.Tensor):
             raise TypeError(f"Expected Chroma transformer tensor output, got {type(prediction).__name__}")
