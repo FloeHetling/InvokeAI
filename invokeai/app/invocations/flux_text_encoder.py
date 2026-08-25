@@ -74,6 +74,22 @@ class FluxTextEncoderInvocation(BaseInvocation):
             conditioning=FluxConditioningField(conditioning_name=conditioning_name, mask=self.mask)
         )
 
+    @staticmethod
+    def _is_t5_model_quantized(model_format: ModelFormat) -> bool:
+        # Raw checkpoints are materialized into a regular T5EncoderModel by the model loader before this invocation.
+        if model_format in [ModelFormat.T5Encoder, ModelFormat.Diffusers, ModelFormat.Checkpoint]:
+            return False
+
+        if model_format in [
+            ModelFormat.BnbQuantizedLlmInt8b,
+            ModelFormat.BnbQuantizednf4b,
+            ModelFormat.GGUFQuantized,
+            ModelFormat.SDNQQuantized,
+        ]:
+            return True
+
+        raise ValueError(f"Unsupported model format: {model_format}")
+
     def _t5_encode(self, context: InvocationContext) -> torch.Tensor:
         prompt = [self.prompt]
 
@@ -92,17 +108,7 @@ class FluxTextEncoderInvocation(BaseInvocation):
             # Determine if the model is quantized.
             # If the model is quantized, then we need to apply the LoRA weights as sidecar layers. This results in
             # slower inference than direct patching, but is agnostic to the quantization format.
-            if t5_encoder_config.format in [ModelFormat.T5Encoder, ModelFormat.Diffusers]:
-                model_is_quantized = False
-            elif t5_encoder_config.format in [
-                ModelFormat.BnbQuantizedLlmInt8b,
-                ModelFormat.BnbQuantizednf4b,
-                ModelFormat.GGUFQuantized,
-                ModelFormat.SDNQQuantized,
-            ]:
-                model_is_quantized = True
-            else:
-                raise ValueError(f"Unsupported model format: {t5_encoder_config.format}")
+            model_is_quantized = self._is_t5_model_quantized(t5_encoder_config.format)
 
             # Apply LoRA models to the T5 encoder.
             # Note: We apply the LoRA after the encoder has been moved to its target device for faster patching.
