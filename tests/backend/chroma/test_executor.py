@@ -5,7 +5,11 @@ import pytest
 import torch
 from diffusers import ChromaTransformer2DModel
 
-from invokeai.backend.chroma.executor import _chroma_ada_layer_norm_zero, _chroma_fp16_accumulation
+from invokeai.backend.chroma.executor import (
+    _chroma_ada_layer_norm_zero,
+    _chroma_fp16_accumulation,
+    _expand_chroma_attention_mask,
+)
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
 
 
@@ -75,6 +79,22 @@ def test_chroma_adaln_preserves_fused_fp16_rounding() -> None:
 
     assert torch.equal(normalized, fused)
     assert not torch.equal(normalized, decomposed)
+
+
+def test_chroma_attention_mask_is_expanded_once_to_the_joint_attention_shape() -> None:
+    attention_mask = torch.tensor(
+        [
+            [True, True, False],
+            [True, False, False],
+        ]
+    )
+
+    expanded = _expand_chroma_attention_mask(attention_mask)
+
+    assert expanded is not None
+    assert expanded.shape == (2, 1, 3, 3)
+    assert torch.equal(expanded[:, 0], attention_mask[:, :, None] * attention_mask[:, None, :])
+    assert _expand_chroma_attention_mask(None) is None
 
 
 def test_chroma_fp16_accumulation_context_enables_and_restores_runtime_flag() -> None:

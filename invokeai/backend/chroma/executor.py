@@ -62,6 +62,12 @@ def _chroma_ada_layer_norm_continuous(
     return torch.addcmul(shift[:, None, :], normalized, (1 + scale)[:, None, :])
 
 
+def _expand_chroma_attention_mask(attention_mask: torch.Tensor | None) -> torch.Tensor | None:
+    if attention_mask is None:
+        return None
+    return attention_mask[:, None, None, :] * attention_mask[:, None, :, None]
+
+
 def _chroma_double_block(
     block: ChromaTransformerBlock,
     hidden_states: torch.Tensor,
@@ -80,8 +86,6 @@ def _chroma_double_block(
         block.norm1_context, encoder_hidden_states, emb=temb_txt
     )
     joint_attention_kwargs = joint_attention_kwargs or {}
-    if attention_mask is not None:
-        attention_mask = attention_mask[:, None, None, :] * attention_mask[:, None, :, None]
 
     attention_outputs = block.attn(
         hidden_states=norm_hidden_states,
@@ -135,9 +139,6 @@ def _chroma_single_block(
     norm_hidden_states, gate = _chroma_ada_layer_norm_zero_single(block.norm, hidden_states, emb=temb)
     mlp_hidden_states = block.act_mlp(block.proj_mlp(norm_hidden_states))
     joint_attention_kwargs = joint_attention_kwargs or {}
-
-    if attention_mask is not None:
-        attention_mask = attention_mask[:, None, None, :] * attention_mask[:, None, :, None]
 
     attn_output = block.attn(
         hidden_states=norm_hidden_states,
@@ -194,6 +195,7 @@ class InvokeAIChromaTransformerExecutor:
 
         ids = torch.cat((txt_ids, img_ids), dim=0)
         image_rotary_emb = self.model.pos_embed(ids)
+        attention_mask = _expand_chroma_attention_mask(attention_mask)
 
         img_offset = 3 * len(self.model.single_transformer_blocks)
         txt_offset = img_offset + 6 * len(self.model.transformer_blocks)
