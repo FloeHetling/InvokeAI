@@ -120,6 +120,12 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         negative_extension = (
             RegionalPromptingExtension.from_text_conditioning(negative, [], image_seq_len) if negative else None
         )
+        # Chroma prompt conditioning is unpadded. Preserve that fact instead of carrying
+        # an all-true CUDA mask into every transformer call; batched CFG recreates a mask
+        # only when combining branches of different lengths requires padding.
+        positive_extension.regional_text_conditioning.attention_mask = None
+        if negative_extension is not None:
+            negative_extension.regional_text_conditioning.attention_mask = None
 
         transformer_config = context.models.get_config(self.transformer.transformer)
         if transformer_config.base is not BaseModelType.Chroma or transformer_config.type is not ModelType.Main:

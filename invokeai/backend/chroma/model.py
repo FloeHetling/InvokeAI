@@ -126,7 +126,7 @@ class ChromaTransformerAdapter:
                 cfg_scale=cfg_scale,
             )
 
-        text_attention_mask = self._get_text_attention_mask(regional_prompting_extension, txt)
+        text_attention_mask = self._get_optional_text_attention_mask(regional_prompting_extension, txt)
         return self._forward_model(
             img=img,
             img_ids=img_ids,
@@ -148,14 +148,25 @@ class ChromaTransformerAdapter:
         return position_ids[0] if position_ids.ndim == 3 else position_ids
 
     @staticmethod
+    def _get_optional_text_attention_mask(
+        regional_prompting_extension: RegionalPromptingExtension,
+        txt: torch.Tensor,
+    ) -> torch.Tensor | None:
+        text_attention_mask = regional_prompting_extension.regional_text_conditioning.attention_mask
+        if text_attention_mask is None:
+            return None
+        return text_attention_mask.to(device=txt.device, dtype=torch.bool)
+
+    @classmethod
     def _get_text_attention_mask(
+        cls,
         regional_prompting_extension: RegionalPromptingExtension,
         txt: torch.Tensor,
     ) -> torch.Tensor:
-        text_attention_mask = regional_prompting_extension.regional_text_conditioning.attention_mask
+        text_attention_mask = cls._get_optional_text_attention_mask(regional_prompting_extension, txt)
         if text_attention_mask is None:
-            text_attention_mask = torch.ones(txt.shape[:2], dtype=torch.bool, device=txt.device)
-        return text_attention_mask.to(device=txt.device, dtype=torch.bool)
+            return torch.ones(txt.shape[:2], dtype=torch.bool, device=txt.device)
+        return text_attention_mask
 
     def predict_cfg_branches(
         self,
@@ -357,6 +368,15 @@ class ChromaTransformerAdapter:
         positive_extension: RegionalPromptingExtension,
         negative_extension: RegionalPromptingExtension,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        source_masks_are_unset = (
+            positive_extension.regional_text_conditioning.attention_mask is None
+            and negative_extension.regional_text_conditioning.attention_mask is None
+        )
+        text_has_padding = (
+            txt.shape[1] != negative_extension.regional_text_conditioning.t5_embeddings.shape[1]
+            if source_masks_are_unset
+            else None
+        )
         prepared_text = self._prepare_batched_cfg_text(
             txt=txt,
             txt_ids=txt_ids,
@@ -375,6 +395,7 @@ class ChromaTransformerAdapter:
             txt_ids=batched_txt_ids,
             timesteps=torch.cat((timesteps, timesteps), dim=0),
             text_attention_mask=torch.cat((positive_mask, negative_mask), dim=0),
+            text_has_padding=text_has_padding,
         )
         positive_pred = batched_pred[:batch_size]
         negative_pred = batched_pred[batch_size:]
@@ -420,7 +441,7 @@ class ChromaTransformerAdapter:
             txt=txt,
             txt_ids=txt_ids,
             timesteps=timesteps,
-            text_attention_mask=self._get_text_attention_mask(positive_extension, txt),
+            text_attention_mask=self._get_optional_text_attention_mask(positive_extension, txt),
         )
 
         negative = negative_extension.regional_text_conditioning
@@ -431,7 +452,7 @@ class ChromaTransformerAdapter:
             txt=negative_txt,
             txt_ids=negative.t5_txt_ids,
             timesteps=timesteps,
-            text_attention_mask=self._get_text_attention_mask(negative_extension, negative_txt),
+            text_attention_mask=self._get_optional_text_attention_mask(negative_extension, negative_txt),
         )
         return positive_pred, negative_pred
 
@@ -495,7 +516,8 @@ class ChromaTransformerAdapter:
         txt: torch.Tensor,
         txt_ids: torch.Tensor,
         timesteps: torch.Tensor,
-        text_attention_mask: torch.Tensor,
+        text_attention_mask: torch.Tensor | None,
+        text_has_padding: bool | None = None,
     ) -> torch.Tensor:
         prediction_dtype = img.dtype
         incoming_img_dtype = img.dtype
@@ -505,20 +527,26 @@ class ChromaTransformerAdapter:
             txt = txt.to(dtype=self._model_input_dtype)
             txt_ids = txt_ids.to(dtype=self._model_input_dtype)
 
-        attention_mask = torch.cat(
-            [
-                text_attention_mask,
-                torch.ones(img.shape[:2], dtype=torch.bool, device=img.device),
-            ],
-            dim=1,
-        )
-
         txt_ids = self._normalize_position_ids(txt_ids)
         img_ids = self._normalize_position_ids(img_ids)
 
-        # Unpadded conditioning does not require an attention mask. Avoiding an all-true
-        # mask also lets the runtime use the preferred fused attention implementation.
-        model_attention_mask = None if bool(torch.all(text_attention_mask).item()) else attention_mask
+        model_attention_mask = None
+        if text_attention_mask is not None:
+            attention_mask = torch.cat(
+                [
+                    text_attention_mask,
+                    torch.ones(img.shape[:2], dtype=torch.bool, device=img.device),
+                ],
+                dim=1,
+            )
+            # Production Chroma conditioning is unpadded, and batched CFG knows from
+            # host-side sequence lengths whether it introduced padding. Keep the tensor
+            # reduction only as a compatibility fallback for callers supplying an explicit
+            # mask without that metadata.
+            if text_has_padding is None:
+                text_has_padding = not bool(torch.all(text_attention_mask).item())
+            if text_has_padding:
+                model_attention_mask = attention_mask
 
         use_cudnn_attention = not self._cudnn_attention_disabled and _should_use_chroma_cudnn_attention(
             self.model,

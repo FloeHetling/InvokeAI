@@ -146,14 +146,17 @@ def test_chroma_transformer_adapter_extends_the_text_mask_over_image_tokens() ->
     assert call["img_ids"].shape == (4, 3)
 
 
-def test_chroma_transformer_adapter_omits_an_all_true_attention_mask() -> None:
+@pytest.mark.parametrize("attention_mask", [None, torch.ones(1, 3, dtype=torch.bool)])
+def test_chroma_transformer_adapter_omits_an_all_true_attention_mask(
+    attention_mask: torch.Tensor | None,
+) -> None:
     model = MagicMock()
     expected = torch.randn(1, 4, 64)
     model.return_value = (expected,)
     regional_prompting = SimpleNamespace(
         restricted_attn_mask=None,
         regional_text_conditioning=SimpleNamespace(
-            attention_mask=torch.ones(1, 3, dtype=torch.bool),
+            attention_mask=attention_mask,
         ),
     )
 
