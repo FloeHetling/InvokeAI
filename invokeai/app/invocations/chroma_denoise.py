@@ -29,6 +29,9 @@ from invokeai.backend.flux.sampling_utils import (
 )
 from invokeai.backend.flux.schedulers import FLUX_SCHEDULER_MAP
 from invokeai.backend.flux.text_conditioning import FluxTextConditioning
+from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.async_linear_weight_staging import (
+    cuda_async_linear_weight_staging,
+)
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelType
 from invokeai.backend.rectified_flow.rectified_flow_inpaint_extension import RectifiedFlowInpaintExtension
 from invokeai.backend.stable_diffusion.diffusion.conditioning_data import ChromaConditioningInfo
@@ -200,6 +203,8 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             if not isinstance(transformer, ChromaTransformer2DModel):
                 raise TypeError(f"Expected ChromaTransformer2DModel, got {type(transformer).__name__}")
 
+            weight_stager = exit_stack.enter_context(cuda_async_linear_weight_staging(device))
+
             adapter = ChromaTransformerAdapter(transformer, model_input_dtype=transformer_dtype)
             sequential_guidance = context.config.get().sequential_guidance
             if self.scheduler == "euler_cfg_pp_beta":
@@ -257,6 +262,13 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     neg_ip_adapter_extensions=[],
                     img_cond=None,
                     scheduler=scheduler,
+                )
+
+            if weight_stager is not None and weight_stager.stats.staged_tensors > 0:
+                context.logger.info(
+                    f"Chroma async linear weight staging: {weight_stager.stats.staged_tensors} tensors "
+                    f"({weight_stager.stats.staged_bytes / 2**30:.2f} GiB), "
+                    f"{weight_stager.stats.synchronous_fallbacks} synchronous fallbacks."
                 )
 
         return unpack(packed_latents.float(), self.height, self.width)
