@@ -2,7 +2,7 @@ import { Flex } from '@invoke-ai/ui-library';
 import { createSelector } from '@reduxjs/toolkit';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { BeginEndStepPct } from 'features/controlLayers/components/common/BeginEndStepPct';
-import { FLUXReduxImageInfluence } from 'features/controlLayers/components/common/FLUXReduxImageInfluence';
+import { FLUXReduxGlobalSettings } from 'features/controlLayers/components/common/FLUXReduxGlobalSettings';
 import { IPAdapterCLIPVisionModel } from 'features/controlLayers/components/common/IPAdapterCLIPVisionModel';
 import { PullBboxIntoRefImageIconButton } from 'features/controlLayers/components/common/PullBboxIntoRefImageIconButton';
 import { Weight } from 'features/controlLayers/components/common/Weight';
@@ -17,7 +17,8 @@ import {
 import { useRefImageIdContext } from 'features/controlLayers/contexts/RefImageIdContext';
 import { selectIsFLUX, selectMainModelConfig } from 'features/controlLayers/store/paramsSlice';
 import {
-  refImageFLUXReduxImageInfluenceChanged,
+  refImageFLUXReduxDownsamplingFactorChanged,
+  refImageFLUXReduxWeightChanged,
   refImageImageChanged,
   refImageIPAdapterBeginEndStepPctChanged,
   refImageIPAdapterCLIPVisionModelChanged,
@@ -28,12 +29,7 @@ import {
   selectRefImageEntityOrThrow,
   selectRefImagesSlice,
 } from 'features/controlLayers/store/refImagesSlice';
-import type {
-  CLIPVisionModelV2,
-  CroppableImageWithDims,
-  FLUXReduxImageInfluence as FLUXReduxImageInfluenceType,
-  IPMethodV2,
-} from 'features/controlLayers/store/types';
+import type { CLIPVisionModelV2, CroppableImageWithDims, IPMethodV2 } from 'features/controlLayers/store/types';
 import {
   isFlux2ReferenceImageConfig,
   isFLUXReduxConfig,
@@ -90,9 +86,16 @@ const RefImageSettingsContent = memo(() => {
     [dispatch, id]
   );
 
-  const onChangeFLUXReduxImageInfluence = useCallback(
-    (imageInfluence: FLUXReduxImageInfluenceType) => {
-      dispatch(refImageFLUXReduxImageInfluenceChanged({ id, imageInfluence }));
+  const onChangeFLUXReduxDownsamplingFactor = useCallback(
+    (downsamplingFactor: number) => {
+      dispatch(refImageFLUXReduxDownsamplingFactorChanged({ id, downsamplingFactor }));
+    },
+    [dispatch, id]
+  );
+
+  const onChangeFLUXReduxWeight = useCallback(
+    (weight: number) => {
+      dispatch(refImageFLUXReduxWeightChanged({ id, weight }));
     },
     [dispatch, id]
   );
@@ -171,12 +174,12 @@ const RefImageSettingsContent = memo(() => {
           </Flex>
         )}
         {isFLUXReduxConfig(config) && !isExternalModel && (
-          <Flex flexDir="column" gap={2} w="full" alignItems="flex-start">
-            <FLUXReduxImageInfluence
-              imageInfluence={config.imageInfluence ?? 'lowest'}
-              onChange={onChangeFLUXReduxImageInfluence}
-            />
-          </Flex>
+          <FLUXReduxGlobalSettings
+            downsamplingFactor={config.downsamplingFactor}
+            weight={config.weight}
+            onChangeDownsamplingFactor={onChangeFLUXReduxDownsamplingFactor}
+            onChangeWeight={onChangeFLUXReduxWeight}
+          />
         )}
         <Flex alignItems="center" justifyContent="center" h={32} w={32} aspectRatio="1/1" flexGrow={1}>
           <RefImageImage

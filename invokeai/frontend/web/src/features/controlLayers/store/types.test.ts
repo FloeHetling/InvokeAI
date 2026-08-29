@@ -20,7 +20,7 @@ import type {
 import type { Invocation } from 'services/api/types';
 import type { Equals } from 'tsafe';
 import { assert } from 'tsafe';
-import { describe, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import type { z } from 'zod';
 
 import type {
@@ -30,6 +30,7 @@ import type {
   IPMethodV2,
   zCanvasEntityIdentifer,
 } from './types';
+import { zRefImageState } from './types';
 
 describe('Control Adapter Types', () => {
   test('FilterType', () => {
@@ -106,5 +107,54 @@ describe('Control Adapter Types', () => {
     // The generic type `CanvasEntityIdentifier` is defined manually, but it must be equal to the inferred type from
     // the zod schema.
     assert<Equals<CanvasEntityIdentifier, z.infer<typeof zCanvasEntityIdentifer>>>();
+  });
+});
+
+describe('FLUX Redux reference image state', () => {
+  test.each([
+    ['highest', 1],
+    ['high', 2],
+    ['medium', 3],
+    ['low', 4],
+    ['lowest', 5],
+  ] as const)('migrates legacy %s influence to raw settings', (imageInfluence, downsamplingFactor) => {
+    const parsed = zRefImageState.parse({
+      id: 'redux',
+      isEnabled: true,
+      config: {
+        type: 'flux_redux',
+        image: null,
+        model: null,
+        imageInfluence,
+      },
+    });
+
+    expect(parsed.config).toEqual({
+      type: 'flux_redux',
+      image: null,
+      model: null,
+      downsamplingFactor,
+      weight: 1,
+    });
+  });
+
+  test('uses raw global Redux defaults for new state', () => {
+    const parsed = zRefImageState.parse({
+      id: 'redux',
+      isEnabled: true,
+      config: {
+        type: 'flux_redux',
+        image: null,
+        model: null,
+      },
+    });
+
+    expect(parsed.config).toEqual({
+      type: 'flux_redux',
+      image: null,
+      model: null,
+      downsamplingFactor: 2,
+      weight: 1,
+    });
   });
 });

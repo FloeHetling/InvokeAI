@@ -20,6 +20,7 @@ import type {
   RasterLayerAdjustments,
   RefImageState,
   RegionalGuidanceIPAdapterConfig,
+  RegionalGuidanceRefImageState,
   RgbColor,
   T2IAdapterConfig,
   WanReferenceImageConfig,
@@ -109,8 +110,15 @@ export const initialFLUXRedux: FLUXReduxConfig = {
   type: 'flux_redux',
   image: null,
   model: null,
-  imageInfluence: 'highest',
+  downsamplingFactor: 2,
+  weight: 1,
 };
+export const initialRegionalGuidanceFLUXRedux = {
+  type: 'flux_redux',
+  image: null,
+  model: null,
+  imageInfluence: 'highest',
+} satisfies RegionalGuidanceRefImageState['config'];
 export const initialFluxKontextReferenceImage: FluxKontextReferenceImageConfig = {
   type: 'flux_kontext_reference_image',
   image: null,

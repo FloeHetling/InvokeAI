@@ -96,8 +96,7 @@ import {
   initialAnimaLLLite,
   initialControlLoRA,
   initialControlNet,
-  initialFLUXRedux,
-  initialIPAdapter,
+  initialRegionalGuidanceFLUXRedux,
   initialRegionalGuidanceIPAdapter,
   initialT2IAdapter,
   initialZImageControl,
@@ -1025,7 +1024,7 @@ const slice = createSlice({
       if (isRegionalGuidanceIPAdapterConfig(referenceImage.config) && isFluxReduxModelConfig(modelConfig)) {
         // Switching from ip_adapter to flux_redux
         referenceImage.config = {
-          ...initialFLUXRedux,
+          ...initialRegionalGuidanceFLUXRedux,
           image: referenceImage.config.image,
           model: zModelIdentifierField.parse(modelConfig),
         };
@@ -1035,7 +1034,7 @@ const slice = createSlice({
       if (isRegionalGuidanceFLUXReduxConfig(referenceImage.config) && isIPAdapterModelConfig(modelConfig)) {
         // Switching from flux_redux to ip_adapter
         referenceImage.config = {
-          ...initialIPAdapter,
+          ...initialRegionalGuidanceIPAdapter,
           image: referenceImage.config.image,
           model: zModelIdentifierField.parse(modelConfig),
         };

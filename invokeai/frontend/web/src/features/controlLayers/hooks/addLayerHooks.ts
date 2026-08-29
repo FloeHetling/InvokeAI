@@ -28,6 +28,7 @@ import type {
   ControlNetConfig,
   Flux2ReferenceImageConfig,
   FluxKontextReferenceImageConfig,
+  FLUXReduxConfig,
   IPAdapterConfig,
   QwenImageReferenceImageConfig,
   RegionalGuidanceIPAdapterConfig,
@@ -38,6 +39,7 @@ import {
   initialControlNet,
   initialFlux2ReferenceImage,
   initialFluxKontextReferenceImage,
+  initialFLUXRedux,
   initialIPAdapter,
   initialQwenImageReferenceImage,
   initialRegionalGuidanceIPAdapter,
@@ -47,9 +49,9 @@ import {
 import { zModelIdentifierField } from 'features/nodes/types/common';
 import { useCallback } from 'react';
 import { modelConfigsAdapterSelectors, selectModelConfigsQuery } from 'services/api/endpoints/models';
-import { selectIPAdapterModels } from 'services/api/hooks/modelsByType';
+import { selectGlobalRefImageModels, selectIPAdapterModels } from 'services/api/hooks/modelsByType';
 import type { ControlLoRAModelConfig, ControlNetModelConfig, T2IAdapterModelConfig } from 'services/api/types';
-import { isControlLayerModelConfig } from 'services/api/types';
+import { isControlLayerModelConfig, isFluxReduxModelConfig } from 'services/api/types';
 
 /**
  * Selects the default control adapter configuration based on the model configurations and the base.
@@ -86,14 +88,27 @@ export const getDefaultRefImageConfig = (
   | IPAdapterConfig
   | FluxKontextReferenceImageConfig
   | Flux2ReferenceImageConfig
+  | FLUXReduxConfig
   | QwenImageReferenceImageConfig
   | WanReferenceImageConfig => {
   const state = getState();
 
   const mainModelConfig = selectMainModelConfig(state);
+  const globalRefImageModelConfigs = selectGlobalRefImageModels(state);
   const ipAdapterModelConfigs = selectIPAdapterModels(state);
 
   const base = mainModelConfig?.base;
+
+  // Chroma uses FLUX Redux as its global reference-image adapter. Redux is a FLUX-side
+  // encoder model, but its 4096-d conditioning tokens are consumed by Chroma denoise.
+  if (base === 'chroma') {
+    const config = deepClone(initialFLUXRedux);
+    const reduxModel = globalRefImageModelConfigs.find(isFluxReduxModelConfig);
+    if (reduxModel) {
+      config.model = zModelIdentifierField.parse(reduxModel);
+    }
+    return config;
+  }
 
   // FLUX.2 Klein has built-in reference image support - no model needed
   if (base === 'flux2') {

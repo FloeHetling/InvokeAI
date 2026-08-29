@@ -2,6 +2,7 @@ import {
   getControlLayerState,
   getReferenceImageState,
   getRegionalGuidanceState,
+  initialFLUXRedux,
   initialRegionalGuidanceIPAdapter,
 } from 'features/controlLayers/store/util';
 import {
@@ -51,7 +52,48 @@ describe('getRegionalGuidanceWarnings - Krea-2', () => {
 });
 
 describe('Chroma unsupported adapters', () => {
-  it('warns for global reference images', () => {
+  it('allows FLUX Redux global reference images', () => {
+    const warnings = getGlobalReferenceImageWarnings(
+      getReferenceImageState('reference', {
+        config: {
+          ...initialFLUXRedux,
+          image: {} as never,
+          model: {
+            base: 'flux',
+            key: 'flux-redux',
+            name: 'FLUX Redux',
+            type: 'flux_redux',
+          } as never,
+        },
+      }),
+      chromaModel
+    );
+
+    expect(warnings).not.toContain('controlLayers.warnings.unsupportedModel');
+    expect(warnings).not.toContain('controlLayers.warnings.ipAdapterIncompatibleBaseModel');
+  });
+
+  it('warns when a Chroma Redux config references a non-Redux model', () => {
+    const warnings = getGlobalReferenceImageWarnings(
+      getReferenceImageState('reference', {
+        config: {
+          ...initialFLUXRedux,
+          image: {} as never,
+          model: {
+            base: 'flux',
+            key: 'flux-ip-adapter',
+            name: 'FLUX IP Adapter',
+            type: 'ip_adapter',
+          } as never,
+        },
+      }),
+      chromaModel
+    );
+
+    expect(warnings).toContain('controlLayers.warnings.ipAdapterIncompatibleBaseModel');
+  });
+
+  it('warns for IP-adapter global reference images', () => {
     const warnings = getGlobalReferenceImageWarnings(getReferenceImageState('reference'), chromaModel);
 
     expect(warnings).toContain('controlLayers.warnings.unsupportedModel');

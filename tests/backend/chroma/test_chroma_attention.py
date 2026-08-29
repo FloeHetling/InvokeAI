@@ -9,7 +9,6 @@ from invokeai.backend.chroma.attention import (
 
 
 def test_chroma_cudnn_attention_policy_is_scoped_to_fp16_cuda(monkeypatch) -> None:
-    monkeypatch.delenv("CH_EXPERIMENT", raising=False)
     monkeypatch.setattr(torch.backends.cudnn, "is_available", lambda: True)
     model = ChromaTransformer2DModel(
         in_channels=4,

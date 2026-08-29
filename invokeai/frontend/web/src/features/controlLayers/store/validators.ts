@@ -1,9 +1,10 @@
-import type {
-  CanvasControlLayerState,
-  CanvasInpaintMaskState,
-  CanvasRasterLayerState,
-  CanvasRegionalGuidanceState,
-  RefImageState,
+import {
+  type CanvasControlLayerState,
+  type CanvasInpaintMaskState,
+  type CanvasRasterLayerState,
+  type CanvasRegionalGuidanceState,
+  isFLUXReduxConfig,
+  type RefImageState,
 } from 'features/controlLayers/store/types';
 import type { ModelIdentifierField } from 'features/nodes/types/common';
 import {
@@ -157,6 +158,17 @@ export const areBasesCompatibleForRefImage = (
   if (!first || !second) {
     return false;
   }
+
+  // Chroma consumes FLUX Redux embeddings through the shared
+  // RegionalPromptingExtension. The Redux side model therefore intentionally
+  // has base='flux' while the main generation model has base='chroma'.
+  if (
+    (first.base === 'chroma' && second.base === 'flux' && second.type === 'flux_redux') ||
+    (second.base === 'chroma' && first.base === 'flux' && first.type === 'flux_redux')
+  ) {
+    return true;
+  }
+
   if (first.base !== second.base) {
     return false;
   }
@@ -186,13 +198,19 @@ export const getGlobalReferenceImageWarnings = (
       return warnings;
     }
 
-    if (model.base === 'chroma' || model.base === 'sd-3' || model.base === 'sd-2' || model.base === 'anima') {
+    const { config } = entity;
+    const isChromaFluxRedux = model.base === 'chroma' && isFLUXReduxConfig(config);
+
+    if (
+      (model.base === 'chroma' && !isChromaFluxRedux) ||
+      model.base === 'sd-3' ||
+      model.base === 'sd-2' ||
+      model.base === 'anima'
+    ) {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
       return warnings;
     }
-
-    const { config } = entity;
 
     // FLUX.2, Qwen Image Edit and Wan reference images don't require a model - it's built-in
     if (

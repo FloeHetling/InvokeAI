@@ -439,7 +439,9 @@ export const addModelSelectedListener = (startAppListening: AppStartListening) =
         if (newModel.base !== 'external' && SUPPORTS_REF_IMAGES_BASE_MODELS.includes(newModel.base)) {
           // Handle incompatible reference image models - switch to first compatible model, with some smart logic
           // to choose the best available model based on the new main model.
-          const allRefImageModels = selectGlobalRefImageModels(state).filter(({ base }) => base === newBase);
+          const allRefImageModels = selectGlobalRefImageModels(state).filter(
+            (candidate) => candidate.base === newBase || (newBase === 'chroma' && isFluxReduxModelConfig(candidate))
+          );
 
           let newGlobalRefImageModel: IPAdapterModelConfig | FLUXKontextModelConfig | FLUXReduxModelConfig | null =
             null;
@@ -450,8 +452,12 @@ export const addModelSelectedListener = (startAppListening: AppStartListening) =
             candidates: T[]
           ): T | null => candidates.find(({ key }) => key === newModel.key) ?? candidates[0] ?? null;
 
-          // The only way we can differentiate between FLUX and FLUX Kontext is to check for "kontext" in the name
-          if (newModel.base === 'flux' && newModel.name.toLowerCase().includes('kontext')) {
+          if (newModel.base === 'chroma') {
+            // Chroma intentionally uses the FLUX Redux side model even though the bases differ.
+            const fluxReduxModels = allRefImageModels.filter(isFluxReduxModelConfig);
+            newGlobalRefImageModel = fluxReduxModels[0] ?? null;
+          } else if (newModel.base === 'flux' && newModel.name.toLowerCase().includes('kontext')) {
+            // The only way we can differentiate between FLUX and FLUX Kontext is to check for "kontext" in the name.
             const fluxKontextDevModels = allRefImageModels.filter(isFluxKontextModelConfig);
             newGlobalRefImageModel = exactMatchOrFirst(fluxKontextDevModels);
           } else if (newModel.base === 'flux') {
@@ -464,6 +470,24 @@ export const addModelSelectedListener = (startAppListening: AppStartListening) =
           // All ref image entities are updated to use the same new model
           const refImageEntities = selectReferenceImageEntities(state);
           for (const entity of refImageEntities) {
+            if (newBase === 'chroma') {
+              const reduxModel =
+                newGlobalRefImageModel && isFluxReduxModelConfig(newGlobalRefImageModel)
+                  ? zModelIdentifierField.parse(newGlobalRefImageModel)
+                  : null;
+              const currentModelKey = 'model' in entity.config ? (entity.config.model?.key ?? null) : null;
+              if (entity.config.type !== 'flux_redux' || currentModelKey !== reduxModel?.key) {
+                dispatch(
+                  refImageConfigChanged({
+                    id: entity.id,
+                    config: { ...initialFLUXRedux, model: reduxModel },
+                  })
+                );
+                modelsUpdatedDisabledOrCleared += 1;
+              }
+              continue;
+            }
+
             if (newBase === 'flux2') {
               // Switching TO FLUX.2 - convert any non-flux2 configs to flux2_reference_image
               if (!isFlux2ReferenceImageConfig(entity.config)) {

@@ -28,7 +28,7 @@ from invokeai.backend.flux.sampling_utils import (
     unpack,
 )
 from invokeai.backend.flux.schedulers import FLUX_SCHEDULER_MAP
-from invokeai.backend.flux.text_conditioning import FluxTextConditioning
+from invokeai.backend.flux.text_conditioning import FluxReduxConditioning, FluxTextConditioning
 from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.async_linear_weight_staging import (
     cuda_async_linear_weight_staging,
 )
@@ -43,7 +43,7 @@ from invokeai.backend.util.devices import TorchDevice
     title="Chroma Denoise",
     tags=["image", "latents", "chroma"],
     category="latents",
-    version="1.0.0",
+    version="1.1.0",
 )
 class ChromaDenoiseInvocation(FluxDenoiseInvocation):
     """Run Chroma denoising with T5 attention masks and Chroma-specific guidance modes."""
@@ -72,7 +72,6 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
     def _run_diffusion(self, context: InvocationContext) -> torch.Tensor:
         unsupported = {
             "Control LoRA": self.control_lora,
-            "Redux": self.redux_conditioning,
             "Fill conditioning": self.fill_conditioning,
             "ControlNet": self.control,
             "ControlNet VAE": self.controlnet_vae,
@@ -119,7 +118,23 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             if self.negative_text_conditioning is not None
             else None
         )
-        positive_extension = RegionalPromptingExtension.from_text_conditioning(positive, [], image_seq_len)
+        redux_conditionings: list[FluxReduxConditioning] = self._load_redux_conditioning(
+            context=context,
+            redux_cond_field=self.redux_conditioning,
+            packed_height=packed_height,
+            packed_width=packed_width,
+            device=device,
+            dtype=transformer_dtype,
+        )
+        if redux_conditionings:
+            context.logger.info(
+                f"Chroma Redux conditioning enabled with {len(redux_conditionings)} reference image(s)."
+            )
+        positive_extension = RegionalPromptingExtension.from_text_conditioning(
+            positive,
+            redux_conditionings,
+            image_seq_len,
+        )
         negative_extension = (
             RegionalPromptingExtension.from_text_conditioning(negative, [], image_seq_len) if negative else None
         )

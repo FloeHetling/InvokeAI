@@ -2696,6 +2696,10 @@ const recallAllImageMetadata = async (
   store: AppStore,
   skip?: (SingleMetadataHandler<any> | CollectionMetadataHandler<any[]>)[]
 ) => {
+  if (!skip?.some((handler) => handler.type === ImageMetadataHandlers.RefImages.type)) {
+    store.dispatch(refImagesRecalled({ entities: [], replace: true }));
+  }
+
   const handlers = Object.values(ImageMetadataHandlers).filter(
     (handler) => isSingleMetadataHandler(handler) || isCollectionMetadataHandler(handler)
   );

@@ -3181,6 +3181,12 @@
             "high": "High",
             "highest": "Highest"
         },
+        "fluxReduxSettings": {
+            "detail": "Detail",
+            "strength": "Strength",
+            "moreDetail": "More detail",
+            "lessDetail": "Less detail"
+        },
         "fill": {
             "fillColor": "Fill Color",
             "bgFillColor": "Background Color",

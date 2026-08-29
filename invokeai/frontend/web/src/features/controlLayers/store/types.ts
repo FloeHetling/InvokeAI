@@ -398,9 +398,43 @@ const zFLUXReduxConfig = z.object({
   type: z.literal('flux_redux'),
   image: zCroppableImageWithDims.nullable(),
   model: zModelIdentifierField.nullable(),
-  imageInfluence: zFLUXReduxImageInfluence.default('highest'),
+  downsamplingFactor: z.number().int().gte(1).lte(9).default(2),
+  weight: z.number().gte(0).lte(1).default(1),
 });
 export type FLUXReduxConfig = z.infer<typeof zFLUXReduxConfig>;
+
+const LEGACY_FLUX_REDUX_IMAGE_INFLUENCE_TO_DOWNSAMPLING_FACTOR: Record<FLUXReduxImageInfluence, number> = {
+  lowest: 5,
+  low: 4,
+  medium: 3,
+  high: 2,
+  highest: 1,
+};
+
+const zLegacyFLUXReduxConfig = z
+  .object({
+    type: z.literal('flux_redux'),
+    imageInfluence: zFLUXReduxImageInfluence.optional(),
+    downsamplingFactor: z.number().optional(),
+    weight: z.number().optional(),
+  })
+  .passthrough();
+
+const migrateLegacyFLUXReduxConfig = (value: unknown): unknown => {
+  const result = zLegacyFLUXReduxConfig.safeParse(value);
+  if (!result.success || result.data.imageInfluence === undefined) {
+    return value;
+  }
+
+  const { imageInfluence, ...config } = result.data;
+  return {
+    ...config,
+    downsamplingFactor:
+      config.downsamplingFactor ?? LEGACY_FLUX_REDUX_IMAGE_INFLUENCE_TO_DOWNSAMPLING_FACTOR[imageInfluence],
+    weight: config.weight ?? 1,
+  };
+};
+
 const zRegionalGuidanceFLUXReduxConfig = z.object({
   type: z.literal('flux_redux'),
   image: zImageWithDims.nullable(),
@@ -439,6 +473,18 @@ const zWanReferenceImageConfig = z.object({
 });
 export type WanReferenceImageConfig = z.infer<typeof zWanReferenceImageConfig>;
 
+const zRefImageConfig = z.preprocess(
+  migrateLegacyFLUXReduxConfig,
+  z.discriminatedUnion('type', [
+    zIPAdapterConfig,
+    zFLUXReduxConfig,
+    zFluxKontextReferenceImageConfig,
+    zFlux2ReferenceImageConfig,
+    zQwenImageReferenceImageConfig,
+    zWanReferenceImageConfig,
+  ])
+);
+
 const zCanvasEntityBase = z.object({
   id: zId,
   name: zName,
@@ -449,14 +495,7 @@ const zCanvasEntityBase = z.object({
 export const zRefImageState = z.object({
   id: zId,
   isEnabled: z.boolean().default(true),
-  config: z.discriminatedUnion('type', [
-    zIPAdapterConfig,
-    zFLUXReduxConfig,
-    zFluxKontextReferenceImageConfig,
-    zFlux2ReferenceImageConfig,
-    zQwenImageReferenceImageConfig,
-    zWanReferenceImageConfig,
-  ]),
+  config: zRefImageConfig,
 });
 export type RefImageState = z.infer<typeof zRefImageState>;
 
@@ -1141,7 +1180,10 @@ export const getInitialRefImagesState = (): RefImagesState => ({
 
 export const zCanvasReferenceImageState_OLD = zCanvasEntityBase.extend({
   type: z.literal('reference_image'),
-  ipAdapter: z.discriminatedUnion('type', [zIPAdapterConfig, zFLUXReduxConfig]),
+  ipAdapter: z.preprocess(
+    migrateLegacyFLUXReduxConfig,
+    z.discriminatedUnion('type', [zIPAdapterConfig, zFLUXReduxConfig])
+  ),
 });
 
 export const zCanvasMetadata = z.object({

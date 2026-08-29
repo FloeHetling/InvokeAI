@@ -51,10 +51,19 @@ const fluxVAE = {
 
 let currentModel: Record<string, unknown> = chromaCheckpoint;
 let currentParams: Record<string, unknown> = {};
+let currentRefImages: { entities: unknown[]; selectedEntityId: string | null; isPanelOpen: boolean } = {
+  entities: [],
+  selectedEntityId: null,
+  isPanelOpen: false,
+};
 
 vi.mock('features/controlLayers/store/paramsSlice', () => ({
   selectMainModelConfig: vi.fn(() => currentModel),
   selectParamsSlice: vi.fn(() => currentParams),
+}));
+
+vi.mock('features/controlLayers/store/refImagesSlice', () => ({
+  selectRefImagesSlice: vi.fn(() => currentRefImages),
 }));
 
 vi.mock('features/controlLayers/store/selectors', () => ({
@@ -104,6 +113,7 @@ const findNode = (nodes: Record<string, { type: string }>, type: string) =>
 beforeEach(() => {
   nextId = 0;
   currentModel = chromaCheckpoint;
+  currentRefImages = { entities: [], selectedEntityId: null, isPanelOpen: false };
   currentParams = {
     cfgScale: 2.5,
     steps: 25,
@@ -189,5 +199,58 @@ describe('buildChromaGraph', () => {
     };
 
     await expect(buildChromaGraph(buildGraphArg())).rejects.toThrow(/T5 Encoder/);
+  });
+
+  it('wires FLUX Redux reference images into Chroma denoise', async () => {
+    currentRefImages = {
+      selectedEntityId: null,
+      isPanelOpen: false,
+      entities: [
+        {
+          id: 'redux-reference',
+          isEnabled: true,
+          config: {
+            type: 'flux_redux',
+            model: { key: 'flux-redux', name: 'FLUX Redux', base: 'flux', type: 'flux_redux' },
+            image: {
+              original: { image: { image_name: 'reference.png', width: 1024, height: 1024 } },
+            },
+            downsamplingFactor: 7,
+            weight: 0.15,
+          },
+        },
+      ],
+    };
+
+    const { g } = await buildChromaGraph(buildGraphArg());
+    const graph = g.getGraph();
+    const redux = findNode(graph.nodes, 'flux_redux');
+    const collector = findNode(graph.nodes, 'collect');
+    const denoise = findNode(graph.nodes, 'chroma_denoise');
+    const metadata = findNode(graph.nodes, 'core_metadata');
+
+    expect(redux).toEqual(
+      expect.objectContaining({
+        redux_model: expect.objectContaining({ key: 'flux-redux', type: 'flux_redux' }),
+        image: { image_name: 'reference.png' },
+        downsampling_factor: 7,
+        weight: 0.15,
+      })
+    );
+    expect(collector).toBeDefined();
+    expect(denoise).toBeDefined();
+    expect(g.getEdges()).toEqual(
+      expect.arrayContaining([
+        {
+          source: { node_id: redux?.id, field: 'redux_cond' },
+          destination: { node_id: collector?.id, field: 'item' },
+        },
+        {
+          source: { node_id: collector?.id, field: 'collection' },
+          destination: { node_id: denoise?.id, field: 'redux_conditioning' },
+        },
+      ])
+    );
+    expect(metadata?.ref_images).toEqual(currentRefImages.entities);
   });
 });

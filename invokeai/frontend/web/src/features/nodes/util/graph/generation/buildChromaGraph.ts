@@ -1,7 +1,9 @@
 import { logger } from 'app/logging/logger';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { selectMainModelConfig, selectParamsSlice } from 'features/controlLayers/store/paramsSlice';
+import { selectRefImagesSlice } from 'features/controlLayers/store/refImagesSlice';
 import { selectCanvasMetadata } from 'features/controlLayers/store/selectors';
+import { addFLUXReduxes } from 'features/nodes/util/graph/generation/addFLUXRedux';
 import { addImageToImage } from 'features/nodes/util/graph/generation/addImageToImage';
 import { addInpaint } from 'features/nodes/util/graph/generation/addInpaint';
 import { addNSFWChecker } from 'features/nodes/util/graph/generation/addNSFWChecker';
@@ -29,6 +31,7 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
   assert(model.base === 'chroma', 'Selected model is not a Chroma model');
 
   const params = selectParamsSlice(state);
+  const refImages = selectRefImagesSlice(state);
   const { cfgScale: cfg_scale, steps, chromaScheduler: scheduler, fluxVAE, t5EncoderModel } = params;
   const mainSuppliesComponents = isSelfContainedChromaPipeline(model);
 
@@ -104,6 +107,22 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
   g.addEdgeToMetadata(seed, 'value', 'seed');
   g.addEdgeToMetadata(positivePrompt, 'value', 'positive_prompt');
   g.addEdgeToMetadata(negativePrompt, 'value', 'negative_prompt');
+
+  const fluxReduxCollect = g.addNode({
+    type: 'collect',
+    id: getPrefixedId('flux_redux_collector'),
+  });
+  const { addedFLUXReduxes } = addFLUXReduxes({
+    entities: refImages.entities,
+    g,
+    collector: fluxReduxCollect,
+    model,
+  });
+  if (addedFLUXReduxes > 0) {
+    g.addEdge(fluxReduxCollect, 'collection', denoise, 'redux_conditioning');
+  } else {
+    g.deleteNode(fluxReduxCollect.id);
+  }
 
   let canvasOutput: Invocation<ImageOutputNodes> = l2i;
 
