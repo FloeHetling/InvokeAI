@@ -141,3 +141,92 @@ def test_chroma_transformer_adapter_executes_real_model_without_calling_diffuser
     assert prediction.shape == (1, 4, 4)
     assert torch.isfinite(prediction).all()
     model.forward.assert_not_called()
+
+
+def test_chroma_transformer_adapter_applies_controlnet_residuals_and_preserves_zero_residual_baseline() -> None:
+    torch.manual_seed(0)
+    model = ChromaTransformer2DModel(
+        in_channels=4,
+        out_channels=4,
+        num_layers=1,
+        num_single_layers=1,
+        attention_head_dim=8,
+        num_attention_heads=1,
+        joint_attention_dim=12,
+        axes_dims_rope=(2, 2, 4),
+        approximator_num_channels=64,
+        approximator_hidden_dim=16,
+        approximator_layers=1,
+    )
+    adapter = ChromaTransformerAdapter(model)
+
+    img = torch.randn(1, 4, 4)
+    img_ids = torch.zeros(4, 3)
+    txt = torch.randn(1, 3, 12)
+    txt_ids = torch.zeros(3, 3)
+    timesteps = torch.tensor([0.5])
+    regional = SimpleNamespace(
+        restricted_attn_mask=None,
+        regional_text_conditioning=SimpleNamespace(attention_mask=None),
+    )
+
+    common_kwargs = {
+        "img": img,
+        "img_ids": img_ids,
+        "txt": txt,
+        "txt_ids": txt_ids,
+        "y": torch.zeros(1, 768),
+        "timesteps": timesteps,
+        "guidance": torch.zeros(1),
+        "timestep_index": 0,
+        "total_num_timesteps": 1,
+        "ip_adapter_extensions": [],
+        "regional_prompting_extension": regional,
+    }
+
+    baseline = adapter(
+        **common_kwargs,
+        controlnet_double_block_residuals=None,
+        controlnet_single_block_residuals=None,
+    )
+    zero_control = adapter(
+        **common_kwargs,
+        controlnet_double_block_residuals=[torch.zeros(1, 4, 8, dtype=torch.bfloat16)],
+        controlnet_single_block_residuals=[torch.zeros(1, 4, 8, dtype=torch.bfloat16)],
+    )
+    controlled = adapter(
+        **common_kwargs,
+        controlnet_double_block_residuals=[torch.full((1, 4, 8), 0.125, dtype=torch.bfloat16)],
+        controlnet_single_block_residuals=[torch.full((1, 4, 8), 0.125, dtype=torch.bfloat16)],
+    )
+
+    assert torch.equal(zero_control, baseline)
+    assert not torch.equal(controlled, baseline)
+
+
+def test_chroma_transformer_executor_rejects_wrong_controlnet_residual_count() -> None:
+    model = ChromaTransformer2DModel(
+        in_channels=4,
+        out_channels=4,
+        num_layers=1,
+        num_single_layers=1,
+        attention_head_dim=8,
+        num_attention_heads=1,
+        joint_attention_dim=12,
+        axes_dims_rope=(2, 2, 4),
+        approximator_num_channels=64,
+        approximator_hidden_dim=16,
+        approximator_layers=1,
+    )
+    adapter = ChromaTransformerAdapter(model)
+
+    with pytest.raises(ValueError, match="double-block residual count"):
+        adapter._forward_model(
+            img=torch.randn(1, 4, 4),
+            img_ids=torch.zeros(4, 3),
+            txt=torch.randn(1, 3, 12),
+            txt_ids=torch.zeros(3, 3),
+            timesteps=torch.tensor([0.5]),
+            text_attention_mask=None,
+            controlnet_double_block_residuals=[],
+        )

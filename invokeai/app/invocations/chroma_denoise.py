@@ -4,12 +4,15 @@ from typing import Optional
 
 import torch
 from diffusers import ChromaTransformer2DModel
+from PIL import Image
 from pydantic import field_validator
 
 from invokeai.app.invocations.baseinvocation import invocation
 from invokeai.app.invocations.fields import FluxConditioningField, InputField
+from invokeai.app.invocations.flux_controlnet import FluxControlNetField
 from invokeai.app.invocations.flux_denoise import FluxDenoiseInvocation
 from invokeai.app.services.shared.invocation_context import InvocationContext
+from invokeai.backend.chroma.controlnet import ChromaInstantXControlNetExtension
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
 from invokeai.backend.chroma.sampling_utils import get_chroma_noise
@@ -38,12 +41,17 @@ from invokeai.backend.stable_diffusion.diffusion.conditioning_data import Chroma
 from invokeai.backend.util.devices import TorchDevice
 
 
+def _prepare_chroma_controlnet_image(image: Image.Image) -> Image.Image:
+    """Drop alpha without compositing so structural ControlNet RGB data is preserved."""
+    return image.convert("RGB")
+
+
 @invocation(
     "chroma_denoise",
     title="Chroma Denoise",
     tags=["image", "latents", "chroma"],
     category="latents",
-    version="1.1.0",
+    version="1.2.0",
 )
 class ChromaDenoiseInvocation(FluxDenoiseInvocation):
     """Run Chroma denoising with T5 attention masks and Chroma-specific guidance modes."""
@@ -73,14 +81,19 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         unsupported = {
             "Control LoRA": self.control_lora,
             "Fill conditioning": self.fill_conditioning,
-            "ControlNet": self.control,
-            "ControlNet VAE": self.controlnet_vae,
             "IP-Adapter": self.ip_adapter,
             "Kontext": self.kontext_conditioning,
         }
         enabled = [name for name, value in unsupported.items() if value is not None]
         if enabled:
             raise ValueError(f"Chroma does not support these FLUX-only inputs: {', '.join(enabled)}")
+        if self.control is None and self.controlnet_vae is not None:
+            raise ValueError("controlnet_vae requires a ControlNet input")
+        if self.control is not None:
+            if self.scheduler != "euler":
+                raise ValueError("Chroma ControlNet compatibility mode currently supports only the Euler scheduler")
+            if self.redux_conditioning is not None:
+                raise ValueError("Chroma ControlNet compatibility mode does not yet support Redux conditioning")
         if self.transformer.loras:
             raise ValueError("Chroma transformer LoRA patches are not supported")
         if self.dype_preset != "off" or self.dype_scale is not None or self.dype_exponent is not None:
@@ -212,15 +225,40 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         )
 
         with ExitStack() as exit_stack:
-            _cached_weights, transformer = exit_stack.enter_context(
-                context.models.load(self.transformer.transformer).model_on_device()
+            controlnet_extensions = self._prep_chroma_controlnet_extensions(
+                context=context,
+                latent_height=latent_height,
+                latent_width=latent_width,
+                dtype=inference_dtype,
+                device=device,
             )
+            controlnet_guidance = 3.5 if controlnet_extensions else 0.0
+            if controlnet_extensions:
+                context.logger.info(
+                    f"Chroma FLUX ControlNet compatibility mode enabled with {len(controlnet_extensions)} "
+                    f"ControlNet(s); side-model guidance={controlnet_guidance:.1f}; phase-swapped residency enabled."
+                )
+
+            transformer_info = context.models.load(self.transformer.transformer)
+            if controlnet_extensions:
+                # Do not pin the 17 GB Chroma transformer in VRAM while the 6 GB ControlNet
+                # is active. The adapter reacquires it around each Chroma forward, allowing
+                # ModelCache to phase-swap the two large models between denoising phases.
+                transformer = transformer_info.model
+            else:
+                # Preserve the established non-ControlNet Chroma lifecycle exactly.
+                _cached_weights, transformer = exit_stack.enter_context(transformer_info.model_on_device())
+
             if not isinstance(transformer, ChromaTransformer2DModel):
                 raise TypeError(f"Expected ChromaTransformer2DModel, got {type(transformer).__name__}")
 
             weight_stager = exit_stack.enter_context(cuda_async_linear_weight_staging(device))
 
-            adapter = ChromaTransformerAdapter(transformer, model_input_dtype=transformer_dtype)
+            adapter = ChromaTransformerAdapter(
+                transformer,
+                model_input_dtype=transformer_dtype,
+                loaded_model=transformer_info if controlnet_extensions else None,
+            )
             sequential_guidance = context.config.get().sequential_guidance
             if self.scheduler == "euler_cfg_pp_beta":
                 if negative_extension is None:
@@ -249,7 +287,12 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                 denoise_cfg_scale = cfg_scale
                 denoise_negative_extension = negative_extension
                 has_guided_steps = any(not math.isclose(scale, 1.0) for scale in cfg_scale)
-                if has_guided_steps and negative_extension is not None and not sequential_guidance:
+                if (
+                    has_guided_steps
+                    and negative_extension is not None
+                    and not sequential_guidance
+                    and not controlnet_extensions
+                ):
                     # Reuse InvokeAI's existing global guidance policy: the default is parallel/batched guidance,
                     # while sequential_guidance=true is the low-memory opt-out. The adapter owns the Chroma-specific
                     # batch assembly and OOM fallback; the shared FLUX loop therefore sees CFG=1 and performs one
@@ -258,6 +301,14 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     denoise_cfg_scale = [1.0] * len(cfg_scale)
                     denoise_negative_extension = None
                     context.logger.info("Chroma CFG: batched positive/negative forward enabled.")
+                elif has_guided_steps and controlnet_extensions:
+                    # The shared FLUX denoiser applies ControlNet residuals only to the positive
+                    # branch. Keep CFG sequential until the Chroma adapter has an explicitly
+                    # branch-aware batched ControlNet path.
+                    context.logger.info(
+                        "Chroma ControlNet: sequential positive/negative CFG enabled so ControlNet residuals "
+                        "apply only to the positive branch."
+                    )
                 elif has_guided_steps and sequential_guidance:
                     context.logger.info("Chroma CFG: sequential guidance enabled by server setting.")
 
@@ -269,10 +320,10 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     neg_regional_prompting_extension=denoise_negative_extension,
                     timesteps=timesteps,
                     step_callback=self._build_step_callback(context),
-                    guidance=0.0,
+                    guidance=controlnet_guidance,
                     cfg_scale=denoise_cfg_scale,
                     inpaint_extension=inpaint_extension,
-                    controlnet_extensions=[],
+                    controlnet_extensions=controlnet_extensions,
                     pos_ip_adapter_extensions=[],
                     neg_ip_adapter_extensions=[],
                     img_cond=None,
@@ -288,6 +339,68 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                 )
 
         return unpack(packed_latents.float(), self.height, self.width)
+
+    def _prep_chroma_controlnet_extensions(
+        self,
+        context: InvocationContext,
+        latent_height: int,
+        latent_width: int,
+        dtype: torch.dtype,
+        device: torch.device,
+    ) -> list[ChromaInstantXControlNetExtension]:
+        if self.control is None:
+            return []
+
+        controlnets: list[FluxControlNetField]
+        if isinstance(self.control, FluxControlNetField):
+            controlnets = [self.control]
+        elif isinstance(self.control, list):
+            controlnets = self.control
+        else:
+            raise ValueError(f"Unsupported Chroma ControlNet input type: {type(self.control)}")
+
+        if self.controlnet_vae is None:
+            raise ValueError("A ControlNet VAE is required when using an InstantX FLUX ControlNet with Chroma")
+
+        # Encode control images before retaining any ControlNet model handles. This keeps
+        # the VAE phase isolated and avoids admitting a 6+ GB side model before VAE work.
+        vae_info = context.models.load(self.controlnet_vae.vae)
+        extensions: list[ChromaInstantXControlNetExtension] = []
+        for controlnet in controlnets:
+            controlnet_image = _prepare_chroma_controlnet_image(context.images.get_pil(controlnet.image.image_name))
+            controlnet_cond = ChromaInstantXControlNetExtension.prepare_controlnet_cond(
+                controlnet_image=controlnet_image,
+                vae_info=vae_info,
+                latent_height=latent_height,
+                latent_width=latent_width,
+                dtype=dtype,
+                device=device,
+                resize_mode=controlnet.resize_mode,
+            )
+
+            instantx_control_mode: torch.Tensor | None = None
+            if controlnet.instantx_control_mode is not None and controlnet.instantx_control_mode >= 0:
+                instantx_control_mode = torch.tensor(
+                    controlnet.instantx_control_mode,
+                    dtype=torch.long,
+                ).reshape([-1, 1])
+
+            # Keep only the LoadedModel handle here. The extension acquires model_on_device()
+            # just for its own forward, so the model cache can evict Chroma for the ControlNet
+            # phase and evict ControlNet again for the following Chroma phase.
+            controlnet_model_info = context.models.load(controlnet.control_model)
+            extensions.append(
+                ChromaInstantXControlNetExtension(
+                    model_info=controlnet_model_info,
+                    controlnet_cond=controlnet_cond,
+                    instantx_control_mode=instantx_control_mode,
+                    weight=controlnet.control_weight,
+                    begin_step_percent=controlnet.begin_step_percent,
+                    end_step_percent=controlnet.end_step_percent,
+                )
+            )
+
+        return extensions
 
     def _prepare_noise_tensor(
         self, context: InvocationContext, inference_dtype: torch.dtype, device: torch.device

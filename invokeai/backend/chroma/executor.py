@@ -18,7 +18,6 @@ from diffusers.models.transformers.transformer_chroma import (
     ChromaTransformerBlock,
 )
 
-
 def _chroma_ada_layer_norm_zero(
     module: ChromaAdaLayerNormZeroPruned,
     x: torch.Tensor,
@@ -188,7 +187,22 @@ class InvokeAIChromaTransformerExecutor:
         txt_ids: torch.Tensor,
         modulation_input: torch.Tensor,
         attention_mask: torch.Tensor | None,
+        controlnet_double_block_residuals: list[torch.Tensor] | None = None,
+        controlnet_single_block_residuals: list[torch.Tensor] | None = None,
     ) -> torch.Tensor:
+        if controlnet_double_block_residuals is not None and len(controlnet_double_block_residuals) != len(
+            self.model.transformer_blocks
+        ):
+            raise ValueError(
+                "Chroma ControlNet double-block residual count does not match the transformer block count"
+            )
+        if controlnet_single_block_residuals is not None and len(controlnet_single_block_residuals) != len(
+            self.model.single_transformer_blocks
+        ):
+            raise ValueError(
+                "Chroma ControlNet single-block residual count does not match the transformer block count"
+            )
+
         hidden_states = self.model.x_embedder(hidden_states)
         pooled_temb = self.model.distilled_guidance_layer(modulation_input)
         encoder_hidden_states = self.model.context_embedder(encoder_hidden_states)
@@ -217,6 +231,17 @@ class InvokeAIChromaTransformerExecutor:
                 image_rotary_emb=image_rotary_emb,
                 attention_mask=attention_mask,
             )
+            if controlnet_double_block_residuals is not None:
+                residual = controlnet_double_block_residuals[index_block]
+                if residual.shape != hidden_states.shape:
+                    raise ValueError(
+                        f"Chroma ControlNet double-block residual {index_block} has shape {tuple(residual.shape)}, "
+                        f"expected {tuple(hidden_states.shape)}"
+                    )
+                hidden_states = hidden_states + residual.to(
+                    device=hidden_states.device,
+                    dtype=hidden_states.dtype,
+                )
 
         hidden_states = torch.cat([encoder_hidden_states, hidden_states], dim=1)
         for index_block, block in enumerate(self.model.single_transformer_blocks):
@@ -228,6 +253,20 @@ class InvokeAIChromaTransformerExecutor:
                 image_rotary_emb=image_rotary_emb,
                 attention_mask=attention_mask,
             )
+            if controlnet_single_block_residuals is not None:
+                image_hidden_states = hidden_states[:, encoder_hidden_states.shape[1] :, ...]
+                residual = controlnet_single_block_residuals[index_block]
+                if residual.shape != image_hidden_states.shape:
+                    raise ValueError(
+                        f"Chroma ControlNet single-block residual {index_block} has shape {tuple(residual.shape)}, "
+                        f"expected {tuple(image_hidden_states.shape)}"
+                    )
+                image_hidden_states.add_(
+                    residual.to(
+                        device=image_hidden_states.device,
+                        dtype=image_hidden_states.dtype,
+                    )
+                )
 
         hidden_states = hidden_states[:, encoder_hidden_states.shape[1] :, ...]
         hidden_states = _chroma_ada_layer_norm_continuous(self.model.norm_out, hidden_states, pooled_temb[:, -2:])

@@ -11,6 +11,7 @@ from invokeai.backend.chroma.attention import (
 )
 from invokeai.backend.chroma.executor import InvokeAIChromaTransformerExecutor, _chroma_fp16_accumulation
 from invokeai.backend.flux.extensions.regional_prompting_extension import RegionalPromptingExtension
+from invokeai.backend.model_manager.load.load_base import LoadedModel
 from invokeai.backend.util.devices import TorchDevice
 from invokeai.backend.util.logging import InvokeAILogger
 
@@ -18,10 +19,17 @@ from invokeai.backend.util.logging import InvokeAILogger
 class ChromaTransformerAdapter:
     """Adapt Diffusers' Chroma transformer to InvokeAI's rectified-flow denoiser interface."""
 
-    def __init__(self, model: ChromaTransformer2DModel, *, model_input_dtype: torch.dtype | None = None):
+    def __init__(
+        self,
+        model: ChromaTransformer2DModel,
+        *,
+        model_input_dtype: torch.dtype | None = None,
+        loaded_model: LoadedModel | None = None,
+    ):
         # Diffusers' generated type information omits Chroma's runtime modules and call operator.
         self.model = cast(Any, model)
         self._model_input_dtype = model_input_dtype
+        self._loaded_model = loaded_model
         self._executor = (
             InvokeAIChromaTransformerExecutor(model) if isinstance(model, ChromaTransformer2DModel) else None
         )
@@ -57,14 +65,12 @@ class ChromaTransformerAdapter:
         guidance: torch.Tensor,
         timestep_index: int,
         total_num_timesteps: int,
-        controlnet_double_block_residuals: Any,
-        controlnet_single_block_residuals: Any,
+        controlnet_double_block_residuals: list[torch.Tensor] | None,
+        controlnet_single_block_residuals: list[torch.Tensor] | None,
         ip_adapter_extensions: list[Any],
         regional_prompting_extension: RegionalPromptingExtension,
     ) -> torch.Tensor:
         del y, guidance, total_num_timesteps
-        if controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None:
-            raise ValueError("Chroma ControlNet residuals are not supported")
         if ip_adapter_extensions:
             raise ValueError("Chroma IP-Adapter extensions are not supported")
         if regional_prompting_extension.restricted_attn_mask is not None:
@@ -72,6 +78,10 @@ class ChromaTransformerAdapter:
 
         cfg_scale = self._cfg_scale_for_step(timestep_index)
         negative_extension = self._batched_cfg_negative_extension
+        if negative_extension is not None and (
+            controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None
+        ):
+            raise ValueError("Chroma internal batched CFG cannot be combined with ControlNet residuals")
         if negative_extension is not None and not math.isclose(cfg_scale, 1.0):
             if negative_extension.restricted_attn_mask is not None:
                 return self._run_sequential_cfg(
@@ -134,6 +144,8 @@ class ChromaTransformerAdapter:
             txt_ids=txt_ids,
             timesteps=timesteps,
             text_attention_mask=text_attention_mask,
+            controlnet_double_block_residuals=controlnet_double_block_residuals,
+            controlnet_single_block_residuals=controlnet_single_block_residuals,
         )
 
     def _cfg_scale_for_step(self, timestep_index: int) -> float:
@@ -518,6 +530,8 @@ class ChromaTransformerAdapter:
         timesteps: torch.Tensor,
         text_attention_mask: torch.Tensor | None,
         text_has_padding: bool | None = None,
+        controlnet_double_block_residuals: list[torch.Tensor] | None = None,
+        controlnet_single_block_residuals: list[torch.Tensor] | None = None,
     ) -> torch.Tensor:
         prediction_dtype = img.dtype
         incoming_img_dtype = img.dtype
@@ -568,7 +582,12 @@ class ChromaTransformerAdapter:
                     txt_ids=txt_ids,
                     modulation_input=chroma_modulation_input,
                     attention_mask=model_attention_mask,
+                    controlnet_double_block_residuals=controlnet_double_block_residuals,
+                    controlnet_single_block_residuals=controlnet_single_block_residuals,
                 )
+
+            if controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None:
+                raise ValueError("Chroma ControlNet residuals require the InvokeAI Chroma executor")
 
             output = self.model(
                 hidden_states=img,
@@ -583,23 +602,31 @@ class ChromaTransformerAdapter:
                 raise TypeError(f"Expected Chroma transformer tensor output, got {type(output).__name__}")
             return output
 
-        with _chroma_fp16_accumulation():
-            if use_cudnn_attention:
-                try:
-                    with _chroma_cudnn_attention(self.model, enabled=True):
-                        prediction = run_model_forward()
-                except RuntimeError as error:
-                    if not _is_chroma_cudnn_backend_unavailable_error(error):
-                        raise
-                    self._cudnn_attention_disabled = True
-                    InvokeAILogger.get_logger(__name__).warning(
-                        "Chroma cuDNN attention is unavailable for this input; retrying with the "
-                        "previous attention backend for the rest of this denoise: %s",
-                        error,
-                    )
-                    prediction = run_model_forward()
-            else:
-                prediction = run_model_forward()
+        def run_with_runtime_contract() -> torch.Tensor:
+            with _chroma_fp16_accumulation():
+                if use_cudnn_attention:
+                    try:
+                        with _chroma_cudnn_attention(self.model, enabled=True):
+                            return run_model_forward()
+                    except RuntimeError as error:
+                        if not _is_chroma_cudnn_backend_unavailable_error(error):
+                            raise
+                        self._cudnn_attention_disabled = True
+                        InvokeAILogger.get_logger(__name__).warning(
+                            "Chroma cuDNN attention is unavailable for this input; retrying with the "
+                            "previous attention backend for the rest of this denoise: %s",
+                            error,
+                        )
+                        return run_model_forward()
+                return run_model_forward()
+
+        if self._loaded_model is None:
+            prediction = run_with_runtime_contract()
+        else:
+            with self._loaded_model.model_on_device() as (_cached_weights, loaded_transformer):
+                if loaded_transformer is not self.model:
+                    raise RuntimeError("Chroma phase-swap model handle returned an unexpected transformer instance")
+                prediction = run_with_runtime_contract()
 
         if not isinstance(prediction, torch.Tensor):
             raise TypeError(f"Expected Chroma transformer tensor output, got {type(prediction).__name__}")
