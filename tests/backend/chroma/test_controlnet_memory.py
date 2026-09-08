@@ -127,6 +127,27 @@ def test_chroma_controlnet_zero_weight_does_not_swap_model_in() -> None:
     assert loaded_model.calls == 0
 
 
+def test_chroma_controlnet_inactive_window_does_not_swap_model_in() -> None:
+    model = _build_tiny_instantx_controlnet()
+    loaded_model = _LoadedModelStub(model)
+    extension = ChromaInstantXControlNetExtension(
+        model_info=loaded_model,  # type: ignore[arg-type]
+        controlnet_cond=torch.zeros(1, 1, 4),
+        instantx_control_mode=None,
+        weight=0.5,
+        begin_step_percent=0.5,
+        end_step_percent=1.0,
+    )
+    call_kwargs = _controlnet_call_kwargs()
+    call_kwargs["total_num_timesteps"] = 2
+
+    result = extension.run_controlnet(**call_kwargs)  # type: ignore[arg-type]
+
+    assert result.single_block_residuals is None
+    assert result.double_block_residuals is None
+    assert loaded_model.calls == 0
+
+
 def test_chroma_adapter_reacquires_phase_swapped_transformer_for_forward() -> None:
     model = ChromaTransformer2DModel(
         in_channels=4,

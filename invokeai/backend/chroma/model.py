@@ -189,6 +189,8 @@ class ChromaTransformerAdapter:
         positive_extension: RegionalPromptingExtension,
         negative_extension: RegionalPromptingExtension,
         allow_batched: bool,
+        controlnet_double_block_residuals: list[torch.Tensor] | None = None,
+        controlnet_single_block_residuals: list[torch.Tensor] | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return positive and negative Chroma predictions without combining CFG.
 
@@ -203,8 +205,12 @@ class ChromaTransformerAdapter:
         positive_txt = positive.t5_embeddings
         positive_txt_ids = positive.t5_txt_ids
 
+        has_controlnet_residuals = (
+            controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None
+        )
         if (
             allow_batched
+            and not has_controlnet_residuals
             and not self._batched_cfg_disabled
             and self._can_batch_cfg(
                 img=img,
@@ -241,6 +247,8 @@ class ChromaTransformerAdapter:
             timesteps=timesteps,
             positive_extension=positive_extension,
             negative_extension=negative_extension,
+            controlnet_double_block_residuals=controlnet_double_block_residuals,
+            controlnet_single_block_residuals=controlnet_single_block_residuals,
         )
 
     @staticmethod
@@ -446,6 +454,8 @@ class ChromaTransformerAdapter:
         timesteps: torch.Tensor,
         positive_extension: RegionalPromptingExtension,
         negative_extension: RegionalPromptingExtension,
+        controlnet_double_block_residuals: list[torch.Tensor] | None = None,
+        controlnet_single_block_residuals: list[torch.Tensor] | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         positive_pred = self._forward_model(
             img=img,
@@ -454,6 +464,8 @@ class ChromaTransformerAdapter:
             txt_ids=txt_ids,
             timesteps=timesteps,
             text_attention_mask=self._get_optional_text_attention_mask(positive_extension, txt),
+            controlnet_double_block_residuals=controlnet_double_block_residuals,
+            controlnet_single_block_residuals=controlnet_single_block_residuals,
         )
 
         negative = negative_extension.regional_text_conditioning
@@ -465,6 +477,8 @@ class ChromaTransformerAdapter:
             txt_ids=negative.t5_txt_ids,
             timesteps=timesteps,
             text_attention_mask=self._get_optional_text_attention_mask(negative_extension, negative_txt),
+            controlnet_double_block_residuals=None,
+            controlnet_single_block_residuals=None,
         )
         return positive_pred, negative_pred
 

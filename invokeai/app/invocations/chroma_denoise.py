@@ -46,6 +46,13 @@ def _prepare_chroma_controlnet_image(image: Image.Image) -> Image.Image:
     return image.convert("RGB")
 
 
+def _validate_chroma_controlnet_scheduler(scheduler: str) -> None:
+    if scheduler not in {"euler", "euler_cfg_pp_beta"}:
+        raise ValueError(
+            "Chroma ControlNet compatibility mode currently supports only the Euler and Euler CFG++ (Beta) schedulers"
+        )
+
+
 @invocation(
     "chroma_denoise",
     title="Chroma Denoise",
@@ -90,8 +97,7 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         if self.control is None and self.controlnet_vae is not None:
             raise ValueError("controlnet_vae requires a ControlNet input")
         if self.control is not None:
-            if self.scheduler != "euler":
-                raise ValueError("Chroma ControlNet compatibility mode currently supports only the Euler scheduler")
+            _validate_chroma_controlnet_scheduler(self.scheduler)
             if self.redux_conditioning is not None:
                 raise ValueError("Chroma ControlNet compatibility mode does not yet support Redux conditioning")
         if self.transformer.loras:
@@ -263,7 +269,12 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             if self.scheduler == "euler_cfg_pp_beta":
                 if negative_extension is None:
                     raise ValueError("Negative text conditioning is required for Chroma Euler CFG++")
-                if sequential_guidance:
+                if controlnet_extensions:
+                    context.logger.info(
+                        "Chroma CFG++ ControlNet: positive-only residuals enabled; active ControlNet steps use "
+                        "sequential positive/negative forwards."
+                    )
+                elif sequential_guidance:
                     context.logger.info(
                         "Chroma CFG++: sequential positive/negative guidance enabled by server setting."
                     )
@@ -282,6 +293,9 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     inpaint_extension=inpaint_extension,
                     allow_batched_cfg=not sequential_guidance,
                     model_input_dtype=(transformer_dtype if transformer_dtype != sampler_state_dtype else None),
+                    controlnet_extensions=controlnet_extensions,
+                    controlnet_guidance=controlnet_guidance,
+                    controlnet_input_dtype=inference_dtype,
                 )
             else:
                 denoise_cfg_scale = cfg_scale

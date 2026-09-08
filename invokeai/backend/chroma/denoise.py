@@ -5,6 +5,8 @@ import torch
 from tqdm import tqdm
 
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
+from invokeai.backend.flux.controlnet.controlnet_flux_output import ControlNetFluxOutput, sum_controlnet_flux_outputs
+from invokeai.backend.flux.extensions.instantx_controlnet_extension import InstantXControlNetExtension
 from invokeai.backend.flux.extensions.regional_prompting_extension import RegionalPromptingExtension
 from invokeai.backend.rectified_flow.rectified_flow_inpaint_extension import RectifiedFlowInpaintExtension
 from invokeai.backend.stable_diffusion.diffusers_pipeline import PipelineIntermediateState
@@ -65,6 +67,9 @@ def denoise_euler_cfg_pp(
     inpaint_extension: RectifiedFlowInpaintExtension | None,
     allow_batched_cfg: bool,
     model_input_dtype: torch.dtype | None = None,
+    controlnet_extensions: list[InstantXControlNetExtension] | None = None,
+    controlnet_guidance: float = 3.5,
+    controlnet_input_dtype: torch.dtype = torch.bfloat16,
 ) -> torch.Tensor:
     """Denoise Chroma latents with deterministic Euler CFG++."""
     total_steps = len(timesteps) - 1
@@ -72,6 +77,13 @@ def denoise_euler_cfg_pp(
         return img
     if len(cfg_scale) < total_steps:
         raise ValueError("CFG scale schedule is shorter than the Chroma timestep schedule")
+
+    controlnet_extensions = controlnet_extensions or []
+    controlnet_guidance_vec = (
+        torch.full((img.shape[0],), controlnet_guidance, dtype=controlnet_input_dtype, device=img.device)
+        if controlnet_extensions
+        else None
+    )
 
     iterator = enumerate(zip(timesteps[:-1], timesteps[1:], strict=True))
     for step_index, (sigma, sigma_next) in tqdm(
@@ -83,6 +95,33 @@ def denoise_euler_cfg_pp(
         model_img_ids = img_ids if model_input_dtype is None else img_ids.to(dtype=model_input_dtype)
         timestep_vec = torch.full((img.shape[0],), sigma, dtype=img.dtype, device=img.device)
 
+        controlnet_double_block_residuals = None
+        controlnet_single_block_residuals = None
+        if controlnet_extensions:
+            if controlnet_guidance_vec is None:
+                raise RuntimeError("Missing Chroma ControlNet guidance vector")
+            controlnet_img = img.to(dtype=controlnet_input_dtype)
+            controlnet_img_ids = img_ids.to(dtype=controlnet_input_dtype)
+            controlnet_timestep_vec = timestep_vec.to(dtype=controlnet_input_dtype)
+            controlnet_outputs: list[ControlNetFluxOutput] = []
+            for controlnet_extension in controlnet_extensions:
+                controlnet_outputs.append(
+                    controlnet_extension.run_controlnet(
+                        timestep_index=step_index,
+                        total_num_timesteps=total_steps,
+                        img=controlnet_img,
+                        img_ids=controlnet_img_ids,
+                        txt=positive_extension.regional_text_conditioning.t5_embeddings,
+                        txt_ids=positive_extension.regional_text_conditioning.t5_txt_ids,
+                        y=positive_extension.regional_text_conditioning.clip_embeddings,
+                        timesteps=controlnet_timestep_vec,
+                        guidance=controlnet_guidance_vec,
+                    )
+                )
+            merged_controlnet_output = sum_controlnet_flux_outputs(controlnet_outputs)
+            controlnet_double_block_residuals = merged_controlnet_output.double_block_residuals
+            controlnet_single_block_residuals = merged_controlnet_output.single_block_residuals
+
         positive_pred, negative_pred = model.predict_cfg_branches(
             img=model_img,
             img_ids=model_img_ids,
@@ -90,6 +129,8 @@ def denoise_euler_cfg_pp(
             positive_extension=positive_extension,
             negative_extension=negative_extension,
             allow_batched=allow_batched_cfg,
+            controlnet_double_block_residuals=controlnet_double_block_residuals,
+            controlnet_single_block_residuals=controlnet_single_block_residuals,
         )
 
         if model_input_dtype is not None:
