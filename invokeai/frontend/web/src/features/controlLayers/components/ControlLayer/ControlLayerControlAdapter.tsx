@@ -185,14 +185,12 @@ export const ControlLayerControlAdapter = memo(() => {
           onChange={onChangeFluxControlType}
         />
       )}
-      {controlAdapter.type === 'controlnet' &&
-        currentBaseModel !== 'flux' &&
-        currentBaseModel !== 'chroma' && (
-          <ControlLayerControlAdapterControlMode
-            controlMode={controlAdapter.controlMode}
-            onChange={onChangeControlMode}
-          />
-        )}
+      {controlAdapter.type === 'controlnet' && currentBaseModel !== 'flux' && currentBaseModel !== 'chroma' && (
+        <ControlLayerControlAdapterControlMode
+          controlMode={controlAdapter.controlMode}
+          onChange={onChangeControlMode}
+        />
+      )}
     </Flex>
   );
 });

@@ -4,7 +4,7 @@ export type FluxControlNetControlTypeOption = FluxControlNetControlType & {
   label: string;
 };
 
-export type FluxControlNetCapability = {
+type FluxControlNetCapability = {
   description: string;
   controlTypes: readonly FluxControlNetControlTypeOption[];
 };

@@ -111,8 +111,6 @@ const zFluxControlNetControlTypeKey = z.enum([
   'low_quality',
   'soft_edge',
 ]);
-export type FluxControlNetControlTypeKey = z.infer<typeof zFluxControlNetControlTypeKey>;
-
 const zFluxControlNetControlType = z.object({
   key: zFluxControlNetControlTypeKey,
   instantxControlMode: z.number().int().gte(0).nullable(),

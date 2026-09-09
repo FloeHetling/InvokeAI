@@ -285,9 +285,9 @@ describe('buildChromaGraph', () => {
 
     expect(findNode(graph.nodes, 'flux_controlnet')).toBeUndefined();
     expect(
-      g.getEdges().some(
-        (edge) => edge.destination.node_id === denoise?.id && edge.destination.field === 'controlnet_vae'
-      )
+      g
+        .getEdges()
+        .some((edge) => edge.destination.node_id === denoise?.id && edge.destination.field === 'controlnet_vae')
     ).toBe(false);
   });
 

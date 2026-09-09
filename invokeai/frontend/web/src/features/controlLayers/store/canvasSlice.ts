@@ -736,9 +736,7 @@ const slice = createSlice({
     },
     controlLayerFluxControlTypeChanged: (
       state,
-      action: PayloadAction<
-        EntityIdentifierPayload<{ fluxControlType: FluxControlNetControlType }, 'control_layer'>
-      >
+      action: PayloadAction<EntityIdentifierPayload<{ fluxControlType: FluxControlNetControlType }, 'control_layer'>>
     ) => {
       const { entityIdentifier, fluxControlType } = action.payload;
       const layer = selectEntity(state, entityIdentifier);

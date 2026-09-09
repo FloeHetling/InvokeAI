@@ -1,8 +1,8 @@
 import type { ComboboxOnChange } from '@invoke-ai/ui-library';
 import { Combobox, FormControl, FormLabel, Tooltip } from '@invoke-ai/ui-library';
 import {
-  getFluxControlNetCapability,
   type FluxControlNetControlTypeOption,
+  getFluxControlNetCapability,
 } from 'features/controlLayers/store/fluxControlNet';
 import type { FluxControlNetControlType } from 'features/controlLayers/store/types';
 import { memo, useCallback, useEffect, useMemo } from 'react';
