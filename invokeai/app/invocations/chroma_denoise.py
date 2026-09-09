@@ -15,6 +15,7 @@ from invokeai.app.services.shared.invocation_context import InvocationContext
 from invokeai.backend.chroma.controlnet import ChromaInstantXControlNetExtension
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
+from invokeai.backend.chroma.residency_profile import ChromaResidencyProfiler
 from invokeai.backend.chroma.sampling_utils import get_chroma_noise
 from invokeai.backend.chroma.schedulers import (
     CHROMA_SCHEDULER_LABELS,
@@ -231,12 +232,14 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         )
 
         with ExitStack() as exit_stack:
+            residency_profiler = ChromaResidencyProfiler.create_if_enabled(context.logger) if self.control else None
             controlnet_extensions = self._prep_chroma_controlnet_extensions(
                 context=context,
                 latent_height=latent_height,
                 latent_width=latent_width,
                 dtype=inference_dtype,
                 device=device,
+                residency_profiler=residency_profiler,
             )
             controlnet_guidance = 3.5 if controlnet_extensions else 0.0
             if controlnet_extensions:
@@ -264,6 +267,7 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                 transformer,
                 model_input_dtype=transformer_dtype,
                 loaded_model=transformer_info if controlnet_extensions else None,
+                residency_profiler=residency_profiler,
             )
             sequential_guidance = context.config.get().sequential_guidance
             if self.scheduler == "euler_cfg_pp_beta":
@@ -344,6 +348,9 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     scheduler=scheduler,
                 )
 
+            if residency_profiler is not None:
+                residency_profiler.log_summary()
+
             if weight_stager is not None and weight_stager.stats.staged_tensors > 0:
                 stats = weight_stager.stats
                 context.logger.info(
@@ -361,6 +368,7 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         latent_width: int,
         dtype: torch.dtype,
         device: torch.device,
+        residency_profiler: ChromaResidencyProfiler | None = None,
     ) -> list[ChromaInstantXControlNetExtension]:
         if self.control is None:
             return []
@@ -411,6 +419,8 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     weight=controlnet.control_weight,
                     begin_step_percent=controlnet.begin_step_percent,
                     end_step_percent=controlnet.end_step_percent,
+                    residency_profiler=residency_profiler,
+                    profile_label=controlnet.control_model.name,
                 )
             )
 
