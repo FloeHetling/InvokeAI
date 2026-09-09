@@ -1,6 +1,7 @@
 import math
+import os
 from contextlib import ExitStack
-from typing import Optional
+from typing import Literal, Optional
 
 import torch
 from diffusers import ChromaTransformer2DModel
@@ -15,6 +16,7 @@ from invokeai.app.services.shared.invocation_context import InvocationContext
 from invokeai.backend.chroma.controlnet import ChromaInstantXControlNetExtension
 from invokeai.backend.chroma.denoise import denoise_euler_cfg_pp
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
+from invokeai.backend.chroma.residency_profile import ChromaResidencyProfiler
 from invokeai.backend.chroma.sampling_utils import get_chroma_noise
 from invokeai.backend.chroma.schedulers import (
     CHROMA_SCHEDULER_LABELS,
@@ -35,6 +37,7 @@ from invokeai.backend.flux.text_conditioning import FluxReduxConditioning, FluxT
 from invokeai.backend.model_manager.load.model_cache.torch_module_autocast.async_linear_weight_staging import (
     cuda_async_linear_weight_staging,
 )
+from invokeai.backend.model_manager.load.model_util import calc_module_size
 from invokeai.backend.model_manager.taxonomy import BaseModelType, ModelType
 from invokeai.backend.rectified_flow.rectified_flow_inpaint_extension import RectifiedFlowInpaintExtension
 from invokeai.backend.stable_diffusion.diffusion.conditioning_data import ChromaConditioningInfo
@@ -51,6 +54,75 @@ def _validate_chroma_controlnet_scheduler(scheduler: str) -> None:
         raise ValueError(
             "Chroma ControlNet compatibility mode currently supports only the Euler and Euler CFG++ (Beta) schedulers"
         )
+
+
+CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR = "INVOKEAI_CHROMA_CONTROLNET_RESIDENCY_POLICY"
+ChromaControlNetResidencyPolicy = Literal["phase_swap", "chroma_pinned"]
+_CHROMA_PINNED_RAM_CACHE_HEADROOM_BYTES = 4 * 2**30
+
+# Pinned Chroma is substantially faster for the smaller Pro 2.0 checkpoint, but
+# the larger original Union checkpoint becomes pathologically streaming-bound on
+# 16 GiB cards. Keep automatic selection deliberately conservative: only the
+# exact checkpoint we have validated gets pinned residency. Unknown/local sources
+# and multi-ControlNet workloads retain the compatibility-first phase-swap path.
+_CHROMA_PINNED_CONTROLNET_SOURCES = {
+    "shakker-labs/flux.1-dev-controlnet-union-pro-2.0",
+}
+
+
+def _get_chroma_controlnet_residency_policy(
+    controlnet_sources: list[str] | None = None,
+) -> ChromaControlNetResidencyPolicy:
+    value = os.getenv(CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR, "auto").strip().lower()
+    if value == "phase_swap":
+        return "phase_swap"
+    if value == "chroma_pinned":
+        return "chroma_pinned"
+    if value != "auto":
+        raise ValueError(
+            f"Invalid {CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR}={value!r}; "
+            "expected 'auto', 'phase_swap', or 'chroma_pinned'"
+        )
+
+    normalized_sources = [source.strip().rstrip("/").casefold() for source in (controlnet_sources or [])]
+    if len(normalized_sources) == 1 and normalized_sources[0] in _CHROMA_PINNED_CONTROLNET_SOURCES:
+        return "chroma_pinned"
+    return "phase_swap"
+
+
+def _resolve_chroma_sequential_guidance(
+    *,
+    requested: bool,
+    transformer_size_bytes: int,
+    device_working_mem_bytes: int,
+    total_device_vram_bytes: int | None,
+) -> tuple[bool, str | None]:
+    """Resolve the effective Chroma guidance mode before the first transformer forward.
+
+    The normal Chroma model admission keeps one configured working-memory reserve free. Batched
+    positive/negative guidance doubles the transformer batch, so only admit it when the full
+    transformer plus two working-memory reserves fit in physical device memory.
+
+    On CUDA/WDDM, oversubscribing physical VRAM may migrate allocations instead of raising
+    torch.OutOfMemoryError, so the adapter's OOM fallback is not sufficient. Use total physical
+    VRAM rather than transient free-memory state so the decision is stable across runs.
+    """
+    if requested:
+        return True, None
+    if total_device_vram_bytes is None:
+        return False, None
+
+    required_vram_bytes = transformer_size_bytes + 2 * device_working_mem_bytes
+    if total_device_vram_bytes >= required_vram_bytes:
+        return False, None
+
+    reason = (
+        f"transformer={transformer_size_bytes / 2**30:.2f} GiB, "
+        f"working reserve={device_working_mem_bytes / 2**30:.2f} GiB per branch, "
+        f"batched requirement={required_vram_bytes / 2**30:.2f} GiB, "
+        f"device total={total_device_vram_bytes / 2**30:.2f} GiB"
+    )
+    return True, reason
 
 
 @invocation(
@@ -231,29 +303,62 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         )
 
         with ExitStack() as exit_stack:
+            controlnet_sources: list[str] = []
+            if self.control is not None:
+                controlnets_for_policy: list[FluxControlNetField]
+                if isinstance(self.control, FluxControlNetField):
+                    controlnets_for_policy = [self.control]
+                elif isinstance(self.control, list):
+                    controlnets_for_policy = self.control
+                else:
+                    raise ValueError(f"Unsupported Chroma ControlNet input type: {type(self.control)}")
+                controlnet_sources = [
+                    context.models.get_config(controlnet.control_model).source for controlnet in controlnets_for_policy
+                ]
+            residency_policy: ChromaControlNetResidencyPolicy = (
+                _get_chroma_controlnet_residency_policy(controlnet_sources) if self.control else "phase_swap"
+            )
+            residency_profiler = ChromaResidencyProfiler.create_if_enabled(context.logger) if self.control else None
             controlnet_extensions = self._prep_chroma_controlnet_extensions(
                 context=context,
                 latent_height=latent_height,
                 latent_width=latent_width,
                 dtype=inference_dtype,
                 device=device,
+                residency_profiler=residency_profiler,
             )
             controlnet_guidance = 3.5 if controlnet_extensions else 0.0
             if controlnet_extensions:
                 context.logger.info(
                     f"Chroma FLUX ControlNet compatibility mode enabled with {len(controlnet_extensions)} "
-                    f"ControlNet(s); side-model guidance={controlnet_guidance:.1f}; phase-swapped residency enabled."
+                    f"ControlNet(s); side-model guidance={controlnet_guidance:.1f}; "
+                    f"residency_policy={residency_policy}."
                 )
 
             transformer_info = context.models.load(self.transformer.transformer)
-            if controlnet_extensions:
+            if controlnet_extensions and residency_policy == "phase_swap":
                 # Do not pin the 17 GB Chroma transformer in VRAM while the 6 GB ControlNet
                 # is active. The adapter reacquires it around each Chroma forward, allowing
                 # ModelCache to phase-swap the two large models between denoising phases.
                 transformer = transformer_info.model
+                adapter_loaded_model = transformer_info
             else:
-                # Preserve the established non-ControlNet Chroma lifecycle exactly.
+                # The established non-ControlNet lifecycle already pins Chroma for the denoise.
+                # The opt-in chroma_pinned experiment deliberately reuses that lifecycle with
+                # ControlNet enabled, forcing the side model to work around Chroma's residency
+                # instead of evicting Chroma once per active denoising step.
                 _cached_weights, transformer = exit_stack.enter_context(transformer_info.model_on_device())
+                adapter_loaded_model = None
+
+            if controlnet_extensions and residency_policy == "chroma_pinned":
+                # A pinned Chroma leaves the ControlNet fully RAM-streamed on 16 GiB cards.
+                # Do not let a no-longer-needed T5/text-encoder cache entry consume the
+                # remaining host-RAM budget: once Windows starts paging those streamed
+                # ControlNet weights, denoising can degrade from seconds/step to minutes.
+                # Chroma is locked above, while the recently loaded ControlNet is MRU, so
+                # normal ModelCache LRU eviction preferentially drops stale one-shot models.
+                context.logger.info("Chroma pinned residency reserving 4.0 GiB of model RAM-cache headroom.")
+                context.models.make_room_in_ram_cache(_CHROMA_PINNED_RAM_CACHE_HEADROOM_BYTES)
 
             if not isinstance(transformer, ChromaTransformer2DModel):
                 raise TypeError(f"Expected ChromaTransformer2DModel, got {type(transformer).__name__}")
@@ -263,9 +368,20 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             adapter = ChromaTransformerAdapter(
                 transformer,
                 model_input_dtype=transformer_dtype,
-                loaded_model=transformer_info if controlnet_extensions else None,
+                loaded_model=adapter_loaded_model,
+                residency_profiler=residency_profiler,
             )
-            sequential_guidance = context.config.get().sequential_guidance
+            app_config = context.config.get()
+            total_device_vram_bytes: int | None = None
+            if device.type == "cuda" and torch.cuda.is_available():
+                total_device_vram_bytes = torch.cuda.get_device_properties(device).total_memory
+
+            sequential_guidance, automatic_guidance_reason = _resolve_chroma_sequential_guidance(
+                requested=app_config.sequential_guidance,
+                transformer_size_bytes=calc_module_size(transformer),
+                device_working_mem_bytes=int(app_config.device_working_mem_gb * 2**30),
+                total_device_vram_bytes=total_device_vram_bytes,
+            )
             if self.scheduler == "euler_cfg_pp_beta":
                 if negative_extension is None:
                     raise ValueError("Negative text conditioning is required for Chroma Euler CFG++")
@@ -274,10 +390,24 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                         "Chroma CFG++ ControlNet: positive-only residuals enabled; active ControlNet steps use "
                         "sequential positive/negative forwards."
                     )
+                    if automatic_guidance_reason is not None:
+                        context.logger.info(
+                            "Chroma batched CFG disabled automatically to avoid device-memory oversubscription: "
+                            f"{automatic_guidance_reason}."
+                        )
                 elif sequential_guidance:
-                    context.logger.info(
-                        "Chroma CFG++: sequential positive/negative guidance enabled by server setting."
-                    )
+                    if automatic_guidance_reason is None:
+                        context.logger.info(
+                            "Chroma CFG++: sequential positive/negative guidance enabled by server setting."
+                        )
+                    else:
+                        context.logger.info(
+                            "Chroma batched CFG disabled automatically to avoid device-memory oversubscription: "
+                            f"{automatic_guidance_reason}."
+                        )
+                        context.logger.info(
+                            "Chroma CFG++: sequential positive/negative guidance enabled automatically."
+                        )
                 else:
                     context.logger.info("Chroma CFG++: batched positive/negative forward enabled.")
 
@@ -324,7 +454,14 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                         "apply only to the positive branch."
                     )
                 elif has_guided_steps and sequential_guidance:
-                    context.logger.info("Chroma CFG: sequential guidance enabled by server setting.")
+                    if automatic_guidance_reason is None:
+                        context.logger.info("Chroma CFG: sequential guidance enabled by server setting.")
+                    else:
+                        context.logger.info(
+                            "Chroma batched CFG disabled automatically to avoid device-memory oversubscription: "
+                            f"{automatic_guidance_reason}."
+                        )
+                        context.logger.info("Chroma CFG: sequential guidance enabled automatically.")
 
                 packed_latents = denoise(
                     model=adapter,  # type: ignore[arg-type]
@@ -344,6 +481,9 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     scheduler=scheduler,
                 )
 
+            if residency_profiler is not None:
+                residency_profiler.log_summary()
+
             if weight_stager is not None and weight_stager.stats.staged_tensors > 0:
                 stats = weight_stager.stats
                 context.logger.info(
@@ -361,6 +501,7 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         latent_width: int,
         dtype: torch.dtype,
         device: torch.device,
+        residency_profiler: ChromaResidencyProfiler | None = None,
     ) -> list[ChromaInstantXControlNetExtension]:
         if self.control is None:
             return []
@@ -411,6 +552,8 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                     weight=controlnet.control_weight,
                     begin_step_percent=controlnet.begin_step_percent,
                     end_step_percent=controlnet.end_step_percent,
+                    residency_profiler=residency_profiler,
+                    profile_label=controlnet.control_model.name,
                 )
             )
 

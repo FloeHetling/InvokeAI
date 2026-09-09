@@ -1,3 +1,4 @@
+import { isControlAdapterModelCompatible } from 'features/controlLayers/store/fluxControlNet';
 import {
   type CanvasControlLayerState,
   type CanvasInpaintMaskState,
@@ -256,7 +257,11 @@ export const getControlLayerWarnings = (
     // No model selected
     warnings.push(WARNINGS.CONTROL_ADAPTER_NO_MODEL_SELECTED);
   } else if (model) {
-    if (model.base === 'chroma' || model.base === 'sd-3' || model.base === 'sd-2') {
+    const isChromaFluxControlNet =
+      model.base === 'chroma' &&
+      entity.controlAdapter.type === 'controlnet' &&
+      entity.controlAdapter.model.base === 'flux';
+    if ((model.base === 'chroma' && !isChromaFluxControlNet) || model.base === 'sd-3' || model.base === 'sd-2') {
       // Unsupported model architecture
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
     } else if (model.base === 'anima' && entity.controlAdapter.type !== 'anima_lllite') {
@@ -264,7 +269,7 @@ export const getControlLayerWarnings = (
       // 'controlnet' before the anima_lllite adapter type existed - the graph builder ignores them, so they must
       // warn instead of silently no-oping.
       warnings.push(WARNINGS.UNSUPPORTED_MODEL);
-    } else if (entity.controlAdapter.model.base !== model.base) {
+    } else if (!isControlAdapterModelCompatible(model.base, entity.controlAdapter.model)) {
       // Supported model architecture but doesn't match
       warnings.push(WARNINGS.CONTROL_ADAPTER_INCOMPATIBLE_BASE_MODEL);
     } else if (

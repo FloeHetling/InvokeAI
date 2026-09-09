@@ -2,7 +2,7 @@ import { logger } from 'app/logging/logger';
 import { getPrefixedId } from 'features/controlLayers/konva/util';
 import { selectMainModelConfig, selectParamsSlice } from 'features/controlLayers/store/paramsSlice';
 import { selectRefImagesSlice } from 'features/controlLayers/store/refImagesSlice';
-import { selectCanvasMetadata } from 'features/controlLayers/store/selectors';
+import { selectCanvasMetadata, selectCanvasSlice } from 'features/controlLayers/store/selectors';
 import { addFLUXReduxes } from 'features/nodes/util/graph/generation/addFLUXRedux';
 import { addImageToImage } from 'features/nodes/util/graph/generation/addImageToImage';
 import { addInpaint } from 'features/nodes/util/graph/generation/addInpaint';
@@ -18,6 +18,8 @@ import type { Invocation } from 'services/api/types';
 import { isSelfContainedChromaPipeline } from 'services/api/types';
 import type { Equals } from 'tsafe';
 import { assert } from 'tsafe';
+
+import { addControlNets } from './addControlAdapters';
 
 const log = logger('system');
 
@@ -122,6 +124,31 @@ export const buildChromaGraph = async (arg: GraphBuilderArg): Promise<GraphBuild
     g.addEdge(fluxReduxCollect, 'collection', denoise, 'redux_conditioning');
   } else {
     g.deleteNode(fluxReduxCollect.id);
+  }
+
+  if (manager !== null) {
+    const canvas = selectCanvasSlice(state);
+    const controlNetCollector = g.addNode({
+      type: 'collect',
+      id: getPrefixedId('control_net_collector'),
+    });
+    const { addedControlNets } = await addControlNets({
+      manager,
+      entities: canvas.controlLayers.entities,
+      g,
+      rect: canvas.bbox.rect,
+      collector: controlNetCollector,
+      model,
+    });
+    if (addedControlNets > 0) {
+      g.addEdge(controlNetCollector, 'collection', denoise, 'control');
+      // Chroma's compatibility path reuses the InstantX FLUX ControlNet VAE encoding.
+      // Do not wire this when no ControlNet is present: the backend intentionally rejects
+      // a stray controlnet_vae input.
+      g.addEdge(modelLoader, 'vae', denoise, 'controlnet_vae');
+    } else {
+      g.deleteNode(controlNetCollector.id);
+    }
   }
 
   let canvasOutput: Invocation<ImageOutputNodes> = l2i;

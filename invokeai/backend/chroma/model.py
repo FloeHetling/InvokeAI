@@ -10,6 +10,7 @@ from invokeai.backend.chroma.attention import (
     _should_use_chroma_cudnn_attention,
 )
 from invokeai.backend.chroma.executor import InvokeAIChromaTransformerExecutor, _chroma_fp16_accumulation
+from invokeai.backend.chroma.residency_profile import ChromaResidencyProfiler
 from invokeai.backend.flux.extensions.regional_prompting_extension import RegionalPromptingExtension
 from invokeai.backend.model_manager.load.load_base import LoadedModel
 from invokeai.backend.util.devices import TorchDevice
@@ -25,11 +26,13 @@ class ChromaTransformerAdapter:
         *,
         model_input_dtype: torch.dtype | None = None,
         loaded_model: LoadedModel | None = None,
+        residency_profiler: ChromaResidencyProfiler | None = None,
     ):
         # Diffusers' generated type information omits Chroma's runtime modules and call operator.
         self.model = cast(Any, model)
         self._model_input_dtype = model_input_dtype
         self._loaded_model = loaded_model
+        self._residency_profiler = residency_profiler
         self._executor = (
             InvokeAIChromaTransformerExecutor(model) if isinstance(model, ChromaTransformer2DModel) else None
         )
@@ -634,13 +637,68 @@ class ChromaTransformerAdapter:
                         return run_model_forward()
                 return run_model_forward()
 
+        profiler = self._residency_profiler
+        controlled = controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None
         if self._loaded_model is None:
-            prediction = run_with_runtime_contract()
-        else:
-            with self._loaded_model.model_on_device() as (_cached_weights, loaded_transformer):
-                if loaded_transformer is not self.model:
-                    raise RuntimeError("Chroma phase-swap model handle returned an unexpected transformer instance")
+            if profiler is None:
                 prediction = run_with_runtime_contract()
+            else:
+                # In the chroma_pinned experiment the transformer is already held by the
+                # invocation's outer model_on_device() context. Keep profiling the forward so
+                # phase_swap and chroma_pinned runs remain directly comparable. There is no
+                # per-forward cache acquire/release in this policy.
+                device = img.device
+                mem_before = profiler.memory_snapshot(device)
+                forward_started = profiler.sync_and_now(device)
+                prediction = run_with_runtime_contract()
+                forward_finished = profiler.sync_and_now(device)
+                mem_after_forward = profiler.memory_snapshot(device)
+                profiler.log_chroma(
+                    controlled=controlled,
+                    acquire_ms=0.0,
+                    forward_ms=(forward_finished - forward_started) * 1000.0,
+                    release_ms=0.0,
+                    mem_before=mem_before,
+                    mem_after_acquire=mem_before,
+                    mem_after_forward=mem_after_forward,
+                    mem_after_release=mem_after_forward,
+                )
+        else:
+            if profiler is None:
+                with self._loaded_model.model_on_device() as (_cached_weights, loaded_transformer):
+                    if loaded_transformer is not self.model:
+                        raise RuntimeError(
+                            "Chroma phase-swap model handle returned an unexpected transformer instance"
+                        )
+                    prediction = run_with_runtime_contract()
+            else:
+                device = img.device
+                mem_before = profiler.memory_snapshot(device)
+                acquire_started = profiler.sync_and_now(device)
+                with self._loaded_model.model_on_device() as (_cached_weights, loaded_transformer):
+                    acquire_finished = profiler.sync_and_now(device)
+                    mem_after_acquire = profiler.memory_snapshot(device)
+                    if loaded_transformer is not self.model:
+                        raise RuntimeError(
+                            "Chroma phase-swap model handle returned an unexpected transformer instance"
+                        )
+                    forward_started = profiler.sync_and_now(device)
+                    prediction = run_with_runtime_contract()
+                    forward_finished = profiler.sync_and_now(device)
+                    mem_after_forward = profiler.memory_snapshot(device)
+                    release_started = profiler.sync_and_now(device)
+                release_finished = profiler.sync_and_now(device)
+                mem_after_release = profiler.memory_snapshot(device)
+                profiler.log_chroma(
+                    controlled=controlled,
+                    acquire_ms=(acquire_finished - acquire_started) * 1000.0,
+                    forward_ms=(forward_finished - forward_started) * 1000.0,
+                    release_ms=(release_finished - release_started) * 1000.0,
+                    mem_before=mem_before,
+                    mem_after_acquire=mem_after_acquire,
+                    mem_after_forward=mem_after_forward,
+                    mem_after_release=mem_after_release,
+                )
 
         if not isinstance(prediction, torch.Tensor):
             raise TypeError(f"Expected Chroma transformer tensor output, got {type(prediction).__name__}")
