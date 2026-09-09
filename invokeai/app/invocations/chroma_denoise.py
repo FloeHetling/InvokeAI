@@ -1,6 +1,7 @@
 import math
+import os
 from contextlib import ExitStack
-from typing import Optional
+from typing import Literal, Optional
 
 import torch
 from diffusers import ChromaTransformer2DModel
@@ -52,6 +53,22 @@ def _validate_chroma_controlnet_scheduler(scheduler: str) -> None:
         raise ValueError(
             "Chroma ControlNet compatibility mode currently supports only the Euler and Euler CFG++ (Beta) schedulers"
         )
+
+
+CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR = "INVOKEAI_CHROMA_CONTROLNET_RESIDENCY_POLICY"
+ChromaControlNetResidencyPolicy = Literal["phase_swap", "chroma_pinned"]
+
+
+def _get_chroma_controlnet_residency_policy() -> ChromaControlNetResidencyPolicy:
+    value = os.getenv(CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR, "phase_swap").strip().lower()
+    if value == "phase_swap":
+        return "phase_swap"
+    if value == "chroma_pinned":
+        return "chroma_pinned"
+    raise ValueError(
+        f"Invalid {CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR}={value!r}; "
+        "expected 'phase_swap' or 'chroma_pinned'"
+    )
 
 
 @invocation(
@@ -232,6 +249,9 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         )
 
         with ExitStack() as exit_stack:
+            residency_policy: ChromaControlNetResidencyPolicy = (
+                _get_chroma_controlnet_residency_policy() if self.control else "phase_swap"
+            )
             residency_profiler = ChromaResidencyProfiler.create_if_enabled(context.logger) if self.control else None
             controlnet_extensions = self._prep_chroma_controlnet_extensions(
                 context=context,
@@ -245,18 +265,24 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             if controlnet_extensions:
                 context.logger.info(
                     f"Chroma FLUX ControlNet compatibility mode enabled with {len(controlnet_extensions)} "
-                    f"ControlNet(s); side-model guidance={controlnet_guidance:.1f}; phase-swapped residency enabled."
+                    f"ControlNet(s); side-model guidance={controlnet_guidance:.1f}; "
+                    f"residency_policy={residency_policy}."
                 )
 
             transformer_info = context.models.load(self.transformer.transformer)
-            if controlnet_extensions:
+            if controlnet_extensions and residency_policy == "phase_swap":
                 # Do not pin the 17 GB Chroma transformer in VRAM while the 6 GB ControlNet
                 # is active. The adapter reacquires it around each Chroma forward, allowing
                 # ModelCache to phase-swap the two large models between denoising phases.
                 transformer = transformer_info.model
+                adapter_loaded_model = transformer_info
             else:
-                # Preserve the established non-ControlNet Chroma lifecycle exactly.
+                # The established non-ControlNet lifecycle already pins Chroma for the denoise.
+                # The opt-in chroma_pinned experiment deliberately reuses that lifecycle with
+                # ControlNet enabled, forcing the side model to work around Chroma's residency
+                # instead of evicting Chroma once per active denoising step.
                 _cached_weights, transformer = exit_stack.enter_context(transformer_info.model_on_device())
+                adapter_loaded_model = None
 
             if not isinstance(transformer, ChromaTransformer2DModel):
                 raise TypeError(f"Expected ChromaTransformer2DModel, got {type(transformer).__name__}")
@@ -266,7 +292,7 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
             adapter = ChromaTransformerAdapter(
                 transformer,
                 model_input_dtype=transformer_dtype,
-                loaded_model=transformer_info if controlnet_extensions else None,
+                loaded_model=adapter_loaded_model,
                 residency_profiler=residency_profiler,
             )
             sequential_guidance = context.config.get().sequential_guidance

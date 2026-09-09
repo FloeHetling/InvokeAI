@@ -637,10 +637,33 @@ class ChromaTransformerAdapter:
                         return run_model_forward()
                 return run_model_forward()
 
+        profiler = self._residency_profiler
+        controlled = controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None
         if self._loaded_model is None:
-            prediction = run_with_runtime_contract()
+            if profiler is None:
+                prediction = run_with_runtime_contract()
+            else:
+                # In the chroma_pinned experiment the transformer is already held by the
+                # invocation's outer model_on_device() context. Keep profiling the forward so
+                # phase_swap and chroma_pinned runs remain directly comparable. There is no
+                # per-forward cache acquire/release in this policy.
+                device = img.device
+                mem_before = profiler.memory_snapshot(device)
+                forward_started = profiler.sync_and_now(device)
+                prediction = run_with_runtime_contract()
+                forward_finished = profiler.sync_and_now(device)
+                mem_after_forward = profiler.memory_snapshot(device)
+                profiler.log_chroma(
+                    controlled=controlled,
+                    acquire_ms=0.0,
+                    forward_ms=(forward_finished - forward_started) * 1000.0,
+                    release_ms=0.0,
+                    mem_before=mem_before,
+                    mem_after_acquire=mem_before,
+                    mem_after_forward=mem_after_forward,
+                    mem_after_release=mem_after_forward,
+                )
         else:
-            profiler = self._residency_profiler
             if profiler is None:
                 with self._loaded_model.model_on_device() as (_cached_weights, loaded_transformer):
                     if loaded_transformer is not self.model:
@@ -650,9 +673,6 @@ class ChromaTransformerAdapter:
                     prediction = run_with_runtime_contract()
             else:
                 device = img.device
-                controlled = (
-                    controlnet_double_block_residuals is not None or controlnet_single_block_residuals is not None
-                )
                 mem_before = profiler.memory_snapshot(device)
                 acquire_started = profiler.sync_and_now(device)
                 with self._loaded_model.model_on_device() as (_cached_weights, loaded_transformer):
