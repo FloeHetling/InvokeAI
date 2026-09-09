@@ -1814,6 +1814,8 @@
             "modelIncompatibleScaledBboxWidth": "Scaled bbox width is {{width}} but {{model}} requires multiple of {{multiple}}",
             "modelIncompatibleScaledBboxHeight": "Scaled bbox height is {{height}} but {{model}} requires multiple of {{multiple}}",
             "fluxModelMultipleControlLoRAs": "Can only use 1 Control LoRA at a time",
+            "chromaControlNetUnsupportedScheduler": "Chroma ControlNet supports only Euler and Euler CFG++ (Beta)",
+            "chromaControlNetIncompatibleWithRedux": "Chroma ControlNet cannot be used together with FLUX Redux",
             "incompatibleLoRAs": "Incompatible LoRAs added",
             "canvasIsFiltering": "Canvas is busy (filtering)",
             "canvasIsTransforming": "Canvas is busy (transforming)",

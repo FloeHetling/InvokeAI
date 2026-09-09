@@ -82,9 +82,29 @@ type ControlAdapterModelLike = {
 };
 
 /**
- * Canvas normally requires the control adapter and main model bases to match.
- * Chroma is the deliberate exception: its compatibility path consumes FLUX
- * InstantX ControlNet fields and residuals.
+ * Model-picker compatibility can use the full installed model config, including source.
+ * Chroma must only offer FLUX ControlNets that this compatibility layer explicitly knows
+ * how to drive; other FLUX ControlNet implementations (for example XLabs) are rejected
+ * by the Chroma backend. Same-base behavior for every other main model is unchanged.
+ */
+export const isControlAdapterModelConfigCompatible = (
+  mainBase: string | null | undefined,
+  adapterModel: FluxControlNetModelLike | null | undefined
+): boolean => {
+  if (!mainBase || !adapterModel) {
+    return false;
+  }
+  if (mainBase === 'chroma') {
+    return getFluxControlNetCapability(adapterModel) !== null;
+  }
+  return mainBase === adapterModel.base;
+};
+
+/**
+ * Identifier-level compatibility used after a model has been persisted in Canvas state.
+ * ModelIdentifierField does not retain source, so this can only express the structural
+ * Chroma/FLUX exception. Use isControlAdapterModelConfigCompatible() whenever the full
+ * installed model config is available.
  */
 export const isControlAdapterModelCompatible = (
   mainBase: string | null | undefined,

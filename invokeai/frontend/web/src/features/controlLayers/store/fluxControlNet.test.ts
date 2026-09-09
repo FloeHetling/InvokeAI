@@ -5,6 +5,7 @@ import {
   getFluxControlNetCapability,
   getInstantXControlModeForGraph,
   isControlAdapterModelCompatible,
+  isControlAdapterModelConfigCompatible,
 } from './fluxControlNet';
 
 describe('FLUX ControlNet capabilities', () => {
@@ -72,10 +73,53 @@ describe('FLUX ControlNet capabilities', () => {
     ).toBeNull();
   });
 
-  it('allows FLUX ControlNets on Chroma without opening other cross-base adapters', () => {
+  it('keeps the identifier-level Chroma/FLUX exception for persisted Canvas state', () => {
     expect(isControlAdapterModelCompatible('chroma', { base: 'flux', type: 'controlnet' })).toBe(true);
     expect(isControlAdapterModelCompatible('chroma', { base: 'flux', type: 'control_lora' })).toBe(false);
     expect(isControlAdapterModelCompatible('chroma', { base: 'sdxl', type: 'controlnet' })).toBe(false);
-    expect(isControlAdapterModelCompatible('flux', { base: 'flux', type: 'controlnet' })).toBe(true);
+  });
+
+  it('only offers explicitly supported FLUX ControlNet configs to Chroma', () => {
+    expect(
+      isControlAdapterModelConfigCompatible('chroma', {
+        base: 'flux',
+        type: 'controlnet',
+        source: 'InstantX/FLUX.1-dev-Controlnet-Union',
+      })
+    ).toBe(true);
+    expect(
+      isControlAdapterModelConfigCompatible('chroma', {
+        base: 'flux',
+        type: 'controlnet',
+        source: 'Shakker-Labs/FLUX.1-dev-ControlNet-Union-Pro-2.0',
+      })
+    ).toBe(true);
+    expect(
+      isControlAdapterModelConfigCompatible('chroma', {
+        base: 'flux',
+        type: 'controlnet',
+        source: 'XLabs-AI/flux-controlnet-collections',
+      })
+    ).toBe(false);
+    expect(
+      isControlAdapterModelConfigCompatible('chroma', {
+        base: 'flux',
+        type: 'controlnet',
+        source: 'Example/Unknown-ControlNet',
+      })
+    ).toBe(false);
+  });
+
+  it('does not narrow ordinary same-base model picker compatibility', () => {
+    expect(
+      isControlAdapterModelConfigCompatible('flux', {
+        base: 'flux',
+        type: 'controlnet',
+        source: 'XLabs-AI/flux-controlnet-collections',
+      })
+    ).toBe(true);
+    expect(
+      isControlAdapterModelConfigCompatible('sdxl', { base: 'sdxl', type: 'controlnet', source: null })
+    ).toBe(true);
   });
 });

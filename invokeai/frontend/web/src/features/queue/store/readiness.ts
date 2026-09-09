@@ -1431,6 +1431,25 @@ export const getReasonsWhyCannotEnqueueCanvasTab = (arg: {
   }
 
   const enabledControlLayers = canvas.controlLayers.entities.filter((controlLayer) => controlLayer.isEnabled);
+  const hasChromaControlNet =
+    model?.base === 'chroma' &&
+    enabledControlLayers.some(
+      (controlLayer) =>
+        controlLayer.controlAdapter.type === 'controlnet' && controlLayer.controlAdapter.model?.base === 'flux'
+    );
+
+  if (hasChromaControlNet) {
+    if (params.chromaScheduler !== 'euler' && params.chromaScheduler !== 'euler_cfg_pp_beta') {
+      reasons.push({ content: i18n.t('parameters.invoke.chromaControlNetUnsupportedScheduler') });
+    }
+
+    const hasEnabledFluxRedux = refImages.entities.some(
+      ({ isEnabled, config }) => isEnabled && config.type === 'flux_redux'
+    );
+    if (hasEnabledFluxRedux) {
+      reasons.push({ content: i18n.t('parameters.invoke.chromaControlNetIncompatibleWithRedux') });
+    }
+  }
 
   // FLUX only supports 1x Control LoRA at a time.
   const controlLoRACount = enabledControlLayers.filter(

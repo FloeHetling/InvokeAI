@@ -1,7 +1,7 @@
 import { Combobox, FormControl, Tooltip } from '@invoke-ai/ui-library';
 import { useAppSelector } from 'app/store/storeHooks';
 import { useGroupedModelCombobox } from 'common/hooks/useGroupedModelCombobox';
-import { isControlAdapterModelCompatible } from 'features/controlLayers/store/fluxControlNet';
+import { isControlAdapterModelConfigCompatible } from 'features/controlLayers/store/fluxControlNet';
 import { selectBase } from 'features/controlLayers/store/paramsSlice';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,7 +42,7 @@ export const ControlLayerControlAdapterModel = memo(({ modelKey, onChange: onCha
         // Defense-in-depth: useControlLayerModels (isControlLayerModelConfig) already excludes these.
         return true;
       }
-      const isCompatible = isControlAdapterModelCompatible(currentBaseModel, model);
+      const isCompatible = isControlAdapterModelConfigCompatible(currentBaseModel, model);
       const hasMainModel = Boolean(currentBaseModel);
       return !hasMainModel || !isCompatible;
     },
@@ -60,7 +60,7 @@ export const ControlLayerControlAdapterModel = memo(({ modelKey, onChange: onCha
 
   return (
     <Tooltip label={selectedModel?.description}>
-      <FormControl isInvalid={!value || !isControlAdapterModelCompatible(currentBaseModel, selectedModel)} w="full">
+      <FormControl isInvalid={!value || !isControlAdapterModelConfigCompatible(currentBaseModel, selectedModel)} w="full">
         <Combobox
           options={options}
           placeholder={t('common.placeholderSelectAModel')}
