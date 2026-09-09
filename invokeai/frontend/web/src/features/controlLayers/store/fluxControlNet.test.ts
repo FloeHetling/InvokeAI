@@ -118,8 +118,8 @@ describe('FLUX ControlNet capabilities', () => {
         source: 'XLabs-AI/flux-controlnet-collections',
       })
     ).toBe(true);
-    expect(
-      isControlAdapterModelConfigCompatible('sdxl', { base: 'sdxl', type: 'controlnet', source: null })
-    ).toBe(true);
+    expect(isControlAdapterModelConfigCompatible('sdxl', { base: 'sdxl', type: 'controlnet', source: null })).toBe(
+      true
+    );
   });
 });

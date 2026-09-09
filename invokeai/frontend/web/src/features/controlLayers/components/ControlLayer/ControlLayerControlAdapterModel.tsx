@@ -60,7 +60,10 @@ export const ControlLayerControlAdapterModel = memo(({ modelKey, onChange: onCha
 
   return (
     <Tooltip label={selectedModel?.description}>
-      <FormControl isInvalid={!value || !isControlAdapterModelConfigCompatible(currentBaseModel, selectedModel)} w="full">
+      <FormControl
+        isInvalid={!value || !isControlAdapterModelConfigCompatible(currentBaseModel, selectedModel)}
+        w="full"
+      >
         <Combobox
           options={options}
           placeholder={t('common.placeholderSelectAModel')}

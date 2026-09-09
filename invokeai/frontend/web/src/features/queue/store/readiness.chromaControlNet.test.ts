@@ -10,7 +10,7 @@ vi.mock('i18next', () => ({
   },
 }));
 
-import type { ParamsState, RefImagesState } from 'features/controlLayers/store/types';
+import type { CanvasState, ParamsState, RefImagesState } from 'features/controlLayers/store/types';
 import type { DynamicPromptsState } from 'features/dynamicPrompts/store/dynamicPromptsSlice';
 import type { MainModelConfig } from 'services/api/types';
 
@@ -90,7 +90,7 @@ const buildArg = ({
     regionalGuidance: { entities: [] },
     rasterLayers: { entities: [] },
     inpaintMasks: { entities: [] },
-  },
+  } as unknown as CanvasState,
   params: {
     positivePrompt: 'test',
     chromaScheduler: scheduler,
