@@ -56,6 +56,10 @@ let currentRefImages: { entities: unknown[]; selectedEntityId: string | null; is
   selectedEntityId: null,
   isPanelOpen: false,
 };
+let currentCanvas = {
+  bbox: { rect: { x: 0, y: 0, width: 1024, height: 1024 } },
+  controlLayers: { entities: [] as unknown[] },
+};
 
 vi.mock('features/controlLayers/store/paramsSlice', () => ({
   selectMainModelConfig: vi.fn(() => currentModel),
@@ -68,6 +72,7 @@ vi.mock('features/controlLayers/store/refImagesSlice', () => ({
 
 vi.mock('features/controlLayers/store/selectors', () => ({
   selectCanvasMetadata: vi.fn(() => ({})),
+  selectCanvasSlice: vi.fn(() => currentCanvas),
 }));
 
 vi.mock('features/ui/store/uiSelectors', () => ({
@@ -95,10 +100,10 @@ import type { GraphBuilderArg } from 'features/nodes/util/graph/types';
 
 import { buildChromaGraph } from './buildChromaGraph';
 
-const buildGraphArg = (): GraphBuilderArg =>
+const buildGraphArg = (manager: GraphBuilderArg['manager'] = null): GraphBuilderArg =>
   ({
     generationMode: 'txt2img',
-    manager: null,
+    manager,
     state: {
       system: {
         shouldUseNSFWChecker: false,
@@ -114,6 +119,10 @@ beforeEach(() => {
   nextId = 0;
   currentModel = chromaCheckpoint;
   currentRefImages = { entities: [], selectedEntityId: null, isPanelOpen: false };
+  currentCanvas = {
+    bbox: { rect: { x: 0, y: 0, width: 1024, height: 1024 } },
+    controlLayers: { entities: [] },
+  };
   currentParams = {
     cfgScale: 2.5,
     steps: 25,
@@ -187,6 +196,99 @@ describe('buildChromaGraph', () => {
     const denoise = findNode(graph.nodes, 'chroma_denoise');
 
     expect(denoise).toEqual(expect.objectContaining({ scheduler: 'euler_cfg_pp_beta' }));
+  });
+
+  it('wires a Canvas FLUX ControlNet into Chroma with its explicit InstantX Union mode', async () => {
+    currentCanvas = {
+      bbox: { rect: { x: 0, y: 0, width: 1024, height: 1024 } },
+      controlLayers: {
+        entities: [
+          {
+            id: 'control-layer',
+            isEnabled: true,
+            objects: [{}],
+            controlAdapter: {
+              type: 'controlnet',
+              model: {
+                key: 'instantx-union',
+                hash: 'instantx-union-hash',
+                name: 'FLUX.1-dev-Controlnet-Union',
+                base: 'flux',
+                type: 'controlnet',
+              },
+              weight: 0.35,
+              beginEndStepPct: [0, 0.3],
+              controlMode: 'balanced',
+              fluxControlType: { key: 'depth', instantxControlMode: 2 },
+            },
+          },
+        ],
+      },
+    };
+    const rasterize = vi.fn().mockResolvedValue({
+      image_name: 'control.png',
+      width: 1024,
+      height: 1024,
+    });
+    const manager = {
+      adapters: {
+        controlLayers: new Map([['control-layer', { renderer: { rasterize } }]]),
+      },
+    } as unknown as NonNullable<GraphBuilderArg['manager']>;
+
+    const { g } = await buildChromaGraph(buildGraphArg(manager));
+    const graph = g.getGraph();
+    const loader = findNode(graph.nodes, 'chroma_model_loader');
+    const controlNet = findNode(graph.nodes, 'flux_controlnet');
+    const collector = findNode(graph.nodes, 'collect');
+    const denoise = findNode(graph.nodes, 'chroma_denoise');
+
+    expect(rasterize).toHaveBeenCalled();
+    expect(controlNet).toEqual(
+      expect.objectContaining({
+        control_model: expect.objectContaining({ key: 'instantx-union', base: 'flux', type: 'controlnet' }),
+        control_weight: 0.35,
+        begin_step_percent: 0,
+        end_step_percent: 0.3,
+        instantx_control_mode: 2,
+        image: { image_name: 'control.png' },
+      })
+    );
+    expect(g.getEdges()).toEqual(
+      expect.arrayContaining([
+        {
+          source: { node_id: controlNet?.id, field: 'control' },
+          destination: { node_id: collector?.id, field: 'item' },
+        },
+        {
+          source: { node_id: collector?.id, field: 'collection' },
+          destination: { node_id: denoise?.id, field: 'control' },
+        },
+        {
+          source: { node_id: loader?.id, field: 'vae' },
+          destination: { node_id: denoise?.id, field: 'controlnet_vae' },
+        },
+      ])
+    );
+  });
+
+  it('does not wire controlnet_vae when Canvas has no valid ControlNet', async () => {
+    const manager = {
+      adapters: {
+        controlLayers: new Map(),
+      },
+    } as unknown as NonNullable<GraphBuilderArg['manager']>;
+
+    const { g } = await buildChromaGraph(buildGraphArg(manager));
+    const graph = g.getGraph();
+    const denoise = findNode(graph.nodes, 'chroma_denoise');
+
+    expect(findNode(graph.nodes, 'flux_controlnet')).toBeUndefined();
+    expect(
+      g.getEdges().some(
+        (edge) => edge.destination.node_id === denoise?.id && edge.destination.field === 'controlnet_vae'
+      )
+    ).toBe(false);
   });
 
   it('rejects a single-file checkpoint when standalone components are not selected', async () => {

@@ -148,6 +148,7 @@ export const initialControlNet: ControlNetConfig = {
   weight: 0.75,
   beginEndStepPct: [0, 0.75],
   controlMode: 'balanced',
+  fluxControlType: null,
 };
 export const initialControlLoRA: ControlLoRAConfig = {
   type: 'control_lora',

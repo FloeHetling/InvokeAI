@@ -6,6 +6,7 @@ import { BeginEndStepPct } from 'features/controlLayers/components/common/BeginE
 import { Weight } from 'features/controlLayers/components/common/Weight';
 import { ControlLayerControlAdapterControlMode } from 'features/controlLayers/components/ControlLayer/ControlLayerControlAdapterControlMode';
 import { ControlLayerControlAdapterModel } from 'features/controlLayers/components/ControlLayer/ControlLayerControlAdapterModel';
+import { ControlLayerFluxControlType } from 'features/controlLayers/components/ControlLayer/ControlLayerFluxControlType';
 import { useEntityAdapterContext } from 'features/controlLayers/contexts/EntityAdapterContext';
 import { useEntityIdentifierContext } from 'features/controlLayers/contexts/EntityIdentifierContext';
 import { usePullBboxIntoLayer } from 'features/controlLayers/hooks/saveCanvasHooks';
@@ -14,13 +15,18 @@ import { useEntityFilter } from 'features/controlLayers/hooks/useEntityFilter';
 import {
   controlLayerBeginEndStepPctChanged,
   controlLayerControlModeChanged,
+  controlLayerFluxControlTypeChanged,
   controlLayerModelChanged,
   controlLayerWeightChanged,
 } from 'features/controlLayers/store/canvasSlice';
 import { getFilterForModel } from 'features/controlLayers/store/filters';
-import { selectIsFLUX } from 'features/controlLayers/store/paramsSlice';
+import { selectBase } from 'features/controlLayers/store/paramsSlice';
 import { selectCanvasSlice, selectEntityOrThrow } from 'features/controlLayers/store/selectors';
-import type { CanvasEntityIdentifier, ControlModeV2 } from 'features/controlLayers/store/types';
+import type {
+  CanvasEntityIdentifier,
+  ControlModeV2,
+  FluxControlNetControlType,
+} from 'features/controlLayers/store/types';
 import { replaceCanvasEntityObjectsWithImage } from 'features/imageActions/actions';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +51,7 @@ export const ControlLayerControlAdapter = memo(() => {
   const selectControlAdapter = useMemo(() => buildSelectControlAdapter(entityIdentifier), [entityIdentifier]);
   const controlAdapter = useAppSelector(selectControlAdapter);
   const filter = useEntityFilter(entityIdentifier);
-  const isFLUX = useAppSelector(selectIsFLUX);
+  const currentBaseModel = useAppSelector(selectBase);
   const adapter = useEntityAdapterContext('control_layer');
 
   const onChangeBeginEndStepPct = useCallback(
@@ -58,6 +64,13 @@ export const ControlLayerControlAdapter = memo(() => {
   const onChangeControlMode = useCallback(
     (controlMode: ControlModeV2) => {
       dispatch(controlLayerControlModeChanged({ entityIdentifier, controlMode }));
+    },
+    [dispatch, entityIdentifier]
+  );
+
+  const onChangeFluxControlType = useCallback(
+    (fluxControlType: FluxControlNetControlType) => {
+      dispatch(controlLayerFluxControlTypeChanged({ entityIdentifier, fluxControlType }));
     },
     [dispatch, entityIdentifier]
   );
@@ -165,12 +178,21 @@ export const ControlLayerControlAdapter = memo(() => {
       {controlAdapter.type !== 'control_lora' && (
         <BeginEndStepPct beginEndStepPct={controlAdapter.beginEndStepPct} onChange={onChangeBeginEndStepPct} />
       )}
-      {controlAdapter.type === 'controlnet' && !isFLUX && (
-        <ControlLayerControlAdapterControlMode
-          controlMode={controlAdapter.controlMode}
-          onChange={onChangeControlMode}
+      {controlAdapter.type === 'controlnet' && (
+        <ControlLayerFluxControlType
+          modelKey={controlAdapter.model?.key ?? null}
+          controlType={controlAdapter.fluxControlType}
+          onChange={onChangeFluxControlType}
         />
       )}
+      {controlAdapter.type === 'controlnet' &&
+        currentBaseModel !== 'flux' &&
+        currentBaseModel !== 'chroma' && (
+          <ControlLayerControlAdapterControlMode
+            controlMode={controlAdapter.controlMode}
+            onChange={onChangeControlMode}
+          />
+        )}
     </Flex>
   );
 });

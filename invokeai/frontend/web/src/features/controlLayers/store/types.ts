@@ -101,6 +101,24 @@ const zControlModeV2 = z.enum(['balanced', 'more_prompt', 'more_control', 'unbal
 export type ControlModeV2 = z.infer<typeof zControlModeV2>;
 export const isControlModeV2 = (v: unknown): v is ControlModeV2 => zControlModeV2.safeParse(v).success;
 
+const zFluxControlNetControlTypeKey = z.enum([
+  'canny',
+  'tile',
+  'depth',
+  'blur',
+  'pose',
+  'gray',
+  'low_quality',
+  'soft_edge',
+]);
+export type FluxControlNetControlTypeKey = z.infer<typeof zFluxControlNetControlTypeKey>;
+
+const zFluxControlNetControlType = z.object({
+  key: zFluxControlNetControlTypeKey,
+  instantxControlMode: z.number().int().gte(0).nullable(),
+});
+export type FluxControlNetControlType = z.infer<typeof zFluxControlNetControlType>;
+
 const zCLIPVisionModelV2 = z.enum(['ViT-H', 'ViT-G', 'ViT-L']);
 export type CLIPVisionModelV2 = z.infer<typeof zCLIPVisionModelV2>;
 export const isCLIPVisionModelV2 = (v: unknown): v is CLIPVisionModelV2 => zCLIPVisionModelV2.safeParse(v).success;
@@ -568,6 +586,7 @@ const zControlNetConfig = z.object({
   weight: z.number().gte(-1).lte(2),
   beginEndStepPct: zBeginEndStepPct,
   controlMode: zControlModeV2,
+  fluxControlType: zFluxControlNetControlType.nullable().default(null),
 });
 export type ControlNetConfig = z.infer<typeof zControlNetConfig>;
 
