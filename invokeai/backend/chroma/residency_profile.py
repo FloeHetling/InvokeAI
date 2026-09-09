@@ -82,11 +82,8 @@ class ChromaResidencyProfiler:
     def log_controlnet_skip(self, *, label: str, weight: float) -> None:
         self._controlnet_skips += 1
         self._logger.info(
-            "CHROMA_RESIDENCY_PROFILE step=%s/%s phase=controlnet model=%s skipped=1 weight=%.6f",
-            self._display_step(),
-            self._total_steps,
-            label,
-            weight,
+            f"CHROMA_RESIDENCY_PROFILE step={self._display_step()}/{self._total_steps} "
+            f"phase=controlnet model={label} skipped=1 weight={weight:.6f}"
         )
 
     def log_controlnet(
@@ -107,20 +104,11 @@ class ChromaResidencyProfiler:
         self._controlnet_forward_ms += forward_ms
         self._controlnet_release_ms += release_ms
         self._logger.info(
-            "CHROMA_RESIDENCY_PROFILE step=%s/%s phase=controlnet model=%s weight=%.6f "
-            "acquire_ms=%.2f forward_ms=%.2f release_ms=%.2f mem_before=[%s] "
-            "mem_after_acquire=[%s] mem_after_forward=[%s] mem_after_release=[%s]",
-            self._display_step(),
-            self._total_steps,
-            label,
-            weight,
-            acquire_ms,
-            forward_ms,
-            release_ms,
-            mem_before,
-            mem_after_acquire,
-            mem_after_forward,
-            mem_after_release,
+            f"CHROMA_RESIDENCY_PROFILE step={self._display_step()}/{self._total_steps} "
+            f"phase=controlnet model={label} weight={weight:.6f} "
+            f"acquire_ms={acquire_ms:.2f} forward_ms={forward_ms:.2f} release_ms={release_ms:.2f} "
+            f"mem_before=[{mem_before}] mem_after_acquire=[{mem_after_acquire}] "
+            f"mem_after_forward=[{mem_after_forward}] mem_after_release=[{mem_after_release}]"
         )
 
     def log_chroma(
@@ -141,36 +129,23 @@ class ChromaResidencyProfiler:
         self._chroma_forward_ms += forward_ms
         self._chroma_release_ms += release_ms
         self._logger.info(
-            "CHROMA_RESIDENCY_PROFILE step=%s/%s phase=chroma call=%s controlled=%s "
-            "acquire_ms=%.2f forward_ms=%.2f release_ms=%.2f mem_before=[%s] "
-            "mem_after_acquire=[%s] mem_after_forward=[%s] mem_after_release=[%s]",
-            self._display_step(),
-            self._total_steps,
-            self._chroma_call_index,
-            int(controlled),
-            acquire_ms,
-            forward_ms,
-            release_ms,
-            mem_before,
-            mem_after_acquire,
-            mem_after_forward,
-            mem_after_release,
+            f"CHROMA_RESIDENCY_PROFILE step={self._display_step()}/{self._total_steps} "
+            f"phase=chroma call={self._chroma_call_index} controlled={int(controlled)} "
+            f"acquire_ms={acquire_ms:.2f} forward_ms={forward_ms:.2f} release_ms={release_ms:.2f} "
+            f"mem_before=[{mem_before}] mem_after_acquire=[{mem_after_acquire}] "
+            f"mem_after_forward=[{mem_after_forward}] mem_after_release=[{mem_after_release}]"
         )
 
     def log_summary(self) -> None:
         self._logger.info(
-            "CHROMA_RESIDENCY_PROFILE summary controlnet_calls=%s controlnet_skips=%s "
-            "controlnet_acquire_ms=%.2f controlnet_forward_ms=%.2f controlnet_release_ms=%.2f "
-            "chroma_calls=%s chroma_acquire_ms=%.2f chroma_forward_ms=%.2f chroma_release_ms=%.2f",
-            self._controlnet_calls,
-            self._controlnet_skips,
-            self._controlnet_acquire_ms,
-            self._controlnet_forward_ms,
-            self._controlnet_release_ms,
-            self._chroma_calls,
-            self._chroma_acquire_ms,
-            self._chroma_forward_ms,
-            self._chroma_release_ms,
+            f"CHROMA_RESIDENCY_PROFILE summary controlnet_calls={self._controlnet_calls} "
+            f"controlnet_skips={self._controlnet_skips} "
+            f"controlnet_acquire_ms={self._controlnet_acquire_ms:.2f} "
+            f"controlnet_forward_ms={self._controlnet_forward_ms:.2f} "
+            f"controlnet_release_ms={self._controlnet_release_ms:.2f} chroma_calls={self._chroma_calls} "
+            f"chroma_acquire_ms={self._chroma_acquire_ms:.2f} "
+            f"chroma_forward_ms={self._chroma_forward_ms:.2f} "
+            f"chroma_release_ms={self._chroma_release_ms:.2f}"
         )
 
     def _display_step(self) -> str:
