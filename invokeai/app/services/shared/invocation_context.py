@@ -600,6 +600,21 @@ class ModelsInterface(InvocationContextInterface):
         key = identifier if isinstance(identifier, str) else identifier.key
         return self._services.model_manager.load.ram_cache.offload_model_from_vram(key)
 
+    def make_room_in_ram_cache(self, bytes_needed: int) -> None:
+        """Ensure at least ``bytes_needed`` bytes are free in the model RAM cache.
+
+        Unlocked least-recently-used model entries are evicted until the requested
+        headroom is available. This is useful before a RAM-streamed model phase where
+        keeping stale one-shot models cached can push the host into paging and make
+        weight staging catastrophically slow.
+
+        Args:
+            bytes_needed: Number of free RAM-cache bytes to make available.
+        """
+        if bytes_needed < 0:
+            raise ValueError("bytes_needed must be non-negative")
+        self._services.model_manager.load.ram_cache.make_room(bytes_needed)
+
     @staticmethod
     def _raise_if_external(model: AnyModelConfig) -> None:
         if model.base == BaseModelType.External or model.format == ModelFormat.ExternalApi:

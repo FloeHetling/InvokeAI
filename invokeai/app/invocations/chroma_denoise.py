@@ -57,18 +57,36 @@ def _validate_chroma_controlnet_scheduler(scheduler: str) -> None:
 
 CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR = "INVOKEAI_CHROMA_CONTROLNET_RESIDENCY_POLICY"
 ChromaControlNetResidencyPolicy = Literal["phase_swap", "chroma_pinned"]
+_CHROMA_PINNED_RAM_CACHE_HEADROOM_BYTES = 4 * 2**30
+
+# Pinned Chroma is substantially faster for the smaller Pro 2.0 checkpoint, but
+# the larger original Union checkpoint becomes pathologically streaming-bound on
+# 16 GiB cards. Keep automatic selection deliberately conservative: only the
+# exact checkpoint we have validated gets pinned residency. Unknown/local sources
+# and multi-ControlNet workloads retain the compatibility-first phase-swap path.
+_CHROMA_PINNED_CONTROLNET_SOURCES = {
+    "shakker-labs/flux.1-dev-controlnet-union-pro-2.0",
+}
 
 
-def _get_chroma_controlnet_residency_policy() -> ChromaControlNetResidencyPolicy:
-    value = os.getenv(CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR, "phase_swap").strip().lower()
+def _get_chroma_controlnet_residency_policy(
+    controlnet_sources: list[str] | None = None,
+) -> ChromaControlNetResidencyPolicy:
+    value = os.getenv(CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR, "auto").strip().lower()
     if value == "phase_swap":
         return "phase_swap"
     if value == "chroma_pinned":
         return "chroma_pinned"
-    raise ValueError(
-        f"Invalid {CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR}={value!r}; "
-        "expected 'phase_swap' or 'chroma_pinned'"
-    )
+    if value != "auto":
+        raise ValueError(
+            f"Invalid {CHROMA_CONTROLNET_RESIDENCY_POLICY_ENV_VAR}={value!r}; "
+            "expected 'auto', 'phase_swap', or 'chroma_pinned'"
+        )
+
+    normalized_sources = [source.strip().rstrip("/").casefold() for source in (controlnet_sources or [])]
+    if len(normalized_sources) == 1 and normalized_sources[0] in _CHROMA_PINNED_CONTROLNET_SOURCES:
+        return "chroma_pinned"
+    return "phase_swap"
 
 
 @invocation(
@@ -249,8 +267,20 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
         )
 
         with ExitStack() as exit_stack:
+            controlnet_sources: list[str] = []
+            if self.control is not None:
+                controlnets_for_policy: list[FluxControlNetField]
+                if isinstance(self.control, FluxControlNetField):
+                    controlnets_for_policy = [self.control]
+                elif isinstance(self.control, list):
+                    controlnets_for_policy = self.control
+                else:
+                    raise ValueError(f"Unsupported Chroma ControlNet input type: {type(self.control)}")
+                controlnet_sources = [
+                    context.models.get_config(controlnet.control_model).source for controlnet in controlnets_for_policy
+                ]
             residency_policy: ChromaControlNetResidencyPolicy = (
-                _get_chroma_controlnet_residency_policy() if self.control else "phase_swap"
+                _get_chroma_controlnet_residency_policy(controlnet_sources) if self.control else "phase_swap"
             )
             residency_profiler = ChromaResidencyProfiler.create_if_enabled(context.logger) if self.control else None
             controlnet_extensions = self._prep_chroma_controlnet_extensions(
@@ -283,6 +313,16 @@ class ChromaDenoiseInvocation(FluxDenoiseInvocation):
                 # instead of evicting Chroma once per active denoising step.
                 _cached_weights, transformer = exit_stack.enter_context(transformer_info.model_on_device())
                 adapter_loaded_model = None
+
+            if controlnet_extensions and residency_policy == "chroma_pinned":
+                # A pinned Chroma leaves the ControlNet fully RAM-streamed on 16 GiB cards.
+                # Do not let a no-longer-needed T5/text-encoder cache entry consume the
+                # remaining host-RAM budget: once Windows starts paging those streamed
+                # ControlNet weights, denoising can degrade from seconds/step to minutes.
+                # Chroma is locked above, while the recently loaded ControlNet is MRU, so
+                # normal ModelCache LRU eviction preferentially drops stale one-shot models.
+                context.logger.info("Chroma pinned residency reserving 4.0 GiB of model RAM-cache headroom.")
+                context.models.make_room_in_ram_cache(_CHROMA_PINNED_RAM_CACHE_HEADROOM_BYTES)
 
             if not isinstance(transformer, ChromaTransformer2DModel):
                 raise TypeError(f"Expected ChromaTransformer2DModel, got {type(transformer).__name__}")
