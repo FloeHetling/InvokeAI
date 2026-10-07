@@ -9,6 +9,7 @@ import type { BackendGraphContract, BackendInvocationContract } from '@features/
 import type { ComponentModelConfig, GenerateModelConfig, GenerateSettings } from '@features/generation/core/types';
 
 import {
+  coerceSchedulerForGraph,
   getGenerationValidationReasons,
   hasEnabledKrea2EditReferences,
 } from '@features/generation/core/baseGenerationPolicies';
@@ -62,6 +63,7 @@ const CANVAS_I2L_NODE_TYPES: Partial<Record<SupportedGenerateBase, string>> = {
   sdxl: 'i2l',
   'sd-3': 'sd3_i2l',
   flux: 'flux_vae_encode',
+  chroma: 'flux_vae_encode',
   flux2: 'flux2_vae_encode',
   cogview4: 'cogview4_i2l',
   'qwen-image': 'qwen_image_i2l',
@@ -77,15 +79,19 @@ const CANVAS_I2L_NODE_TYPES: Partial<Record<SupportedGenerateBase, string>> = {
 };
 
 /**
- * SD-3, FLUX, FLUX.2 and MOSS-Image use start = 1 - strength^0.2; MOSS-Image clips its shifted schedule in sigma space
- * like FLUX.2. FLUX Fill always starts at 0; other bases use 1 - strength.
+ * SD-3, FLUX, FLUX.2, Chroma and MOSS-Image use start = 1 - strength^0.2; MOSS-Image clips its shifted schedule in sigma
+ * space like FLUX.2. FLUX Fill always starts at 0; other bases use 1 - strength.
  */
 const canvasDenoisingStart = (model: GenerateModelConfig, strength: number): number => {
   if (model.base === 'flux' && model.variant === 'dev_fill') {
     return 0;
   }
   const usesOptimizedCurve =
-    model.base === 'sd-3' || model.base === 'flux' || model.base === 'flux2' || model.base === 'moss-image';
+    model.base === 'sd-3' ||
+    model.base === 'flux' ||
+    model.base === 'flux2' ||
+    model.base === 'chroma' ||
+    model.base === 'moss-image';
   return 1 - strength ** (usesOptimizedCurve ? 0.2 : 1);
 };
 
@@ -200,6 +206,17 @@ const getCanvasValidationReasons = (input: CompileCanvasGraphInput, processingSi
     // A provider edits at its own strength; only the local denoise reads this one.
     if (model.type !== 'external_image_generator' && (!Number.isFinite(strength) || strength <= 0 || strength > 1)) {
       reasons.push('Canvas denoising strength must be greater than 0 and at most 1.');
+    }
+  }
+
+  // Chroma drives FLUX ControlNets through its own Euler loops, and those are not yet combined with Redux.
+  if (model.base === 'chroma' && input.controlLayers && input.controlLayers.length > 0) {
+    const scheduler = coerceSchedulerForGraph(model, input.settings.scheduler);
+    if (scheduler !== 'euler' && scheduler !== 'euler_cfg_pp_beta') {
+      reasons.push('Chroma ControlNet supports only the Euler and Euler CFG++ (Beta) schedulers.');
+    }
+    if (input.settings.referenceImages.some((image) => image.isEnabled && image.config.type === 'flux_redux')) {
+      reasons.push('Chroma ControlNet cannot be combined with Redux reference images.');
     }
   }
 

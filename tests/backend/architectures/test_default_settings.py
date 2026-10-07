@@ -286,6 +286,7 @@ DEFAULT_SETTINGS_MATRIX: list[tuple[str, BaseModelType, AnyVariant | None, str |
         None,
         {"scheduler": "euler", "steps": 50, "cfg_scale": 3.0, **_SQUARE_1024},
     ),
+    ("chroma", BaseModelType.Chroma, None, None, {"scheduler": "euler", "steps": 40, "cfg_scale": 3.0, **_SQUARE_1024}),
 ]
 
 

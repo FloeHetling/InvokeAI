@@ -51,7 +51,11 @@ const compileForShape = (
         ...satisfied,
         referenceImages: withAddedReferenceImages(
           model,
-          [{ base, key: `${base}-ip-adapter`, name: `${base} IP Adapter`, type: 'ip_adapter' }],
+          [
+            { base, key: `${base}-ip-adapter`, name: `${base} IP Adapter`, type: 'ip_adapter' },
+            // Chroma takes FLUX Redux only.
+            { base: 'flux', key: 'flux-redux', name: 'FLUX Redux', type: 'flux_redux' },
+          ],
           [],
           [
             {

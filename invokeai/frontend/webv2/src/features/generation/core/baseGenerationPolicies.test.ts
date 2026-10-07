@@ -2707,3 +2707,74 @@ describe('SDXL Refiner policy', () => {
     expect(getGenerationModelAvailabilityReasons(sdxl, settings, [sdxl as never, refiner as never])).toEqual([]);
   });
 });
+
+describe('Chroma policy', () => {
+  const chromaFile = createModel('chroma', { format: 'checkpoint' });
+  const chromaPipeline = createModel('chroma', {
+    format: 'diffusers',
+    submodels: { text_encoder: {}, tokenizer: {}, transformer: {}, vae: {} },
+  });
+
+  it('starts from the model-card settings and offers Euler CFG++ among its schedulers', () => {
+    expect(getDefaultGenerateSettings(chromaFile)).toMatchObject({ cfgScale: 3, scheduler: 'euler', steps: 40 });
+    expect(getSchedulerOptions(chromaFile).map((option) => option.value)).toEqual([
+      'euler',
+      'euler_cfg_pp_beta',
+      'heun',
+      'lcm',
+    ]);
+    expect(coerceSchedulerForGraph(chromaFile, 'euler_cfg_pp_beta')).toBe('euler_cfg_pp_beta');
+    expect(coerceSchedulerForGraph(chromaFile, 'dpmpp_2m')).toBe('euler');
+  });
+
+  it('tells the user Euler CFG++ always uses the negative prompt', () => {
+    const base = { cfgScale: 1, negativePromptEnabled: true };
+
+    expect(getPromptPolicy(chromaFile, { ...base, scheduler: 'euler' })).toMatchObject({
+      negativeHelpText: 'Used only when CFG is greater than 1.',
+      negativeUsedInGraph: false,
+    });
+    expect(getPromptPolicy(chromaFile, { ...base, scheduler: 'euler_cfg_pp_beta' })).toMatchObject({
+      negativeHelpText: 'Always used with Euler CFG++.',
+      negativeUsedInGraph: true,
+    });
+  });
+
+  it('asks for a T5 encoder and a FLUX VAE only when the model does not bundle them', () => {
+    expect(getGenerationValidationReasons(chromaFile, createSettings(chromaFile))).toEqual([
+      'Generate needs a T5 Encoder for Chroma models.',
+      'Generate needs a VAE for Chroma models.',
+    ]);
+    expect(
+      getGenerationValidationReasons(
+        chromaFile,
+        createSettings(chromaFile, { t5EncoderModel: t5Encoder, vae: fluxVae })
+      )
+    ).toEqual([]);
+    expect(getGenerationValidationReasons(chromaPipeline, createSettings(chromaPipeline))).toEqual([]);
+  });
+
+  it('takes FLUX Redux as its reference image, and nothing else', () => {
+    const reduxModel = { base: 'flux', key: 'flux-redux', name: 'FLUX Redux', type: 'flux_redux' };
+    const ipAdapter = { base: 'flux', key: 'flux-ip', name: 'FLUX IP Adapter', type: 'ip_adapter' };
+
+    const defaultConfig = (model: ReturnType<typeof createModel>, candidates: (typeof ipAdapter)[]) =>
+      withAddedReferenceImages(model, candidates as never, [], [{ id: 'new', image: null }])[0]!.config;
+
+    expect(isReferenceImageSupported(chromaFile)).toBe(true);
+    expect(defaultConfig(chromaFile, [ipAdapter, reduxModel])).toMatchObject({
+      model: reduxModel,
+      type: 'flux_redux',
+    });
+
+    const asIpAdapter = {
+      config: defaultConfig(createModel('flux'), [ipAdapter]),
+      id: 'ip',
+      isEnabled: true,
+    };
+
+    expect(
+      getGenerationValidationReasons(chromaPipeline, createSettings(chromaPipeline, { referenceImages: [asIpAdapter] }))
+    ).toEqual(['Reference Image #1 is not supported by chroma model.']);
+  });
+});

@@ -9,6 +9,7 @@ import {
   getArchitectureFeatures,
   getArchitectureGenerationConfig,
   hasArchitectureCapabilities,
+  isAdapterBaseCompatible,
 } from '@features/generation/core/architectureCapabilities';
 import {
   isSupportedGenerateBase,
@@ -44,6 +45,7 @@ import {
   isIdeogram4UnconditionalBranch,
   isKrea2Qwen3VlEncoder,
   isMossImageQwen35Encoder,
+  isSelfContainedChromaPipeline,
   isSelfContainedSDNQFlux1Pipeline,
   isSelfContainedSDNQPipeline,
   isVaeAcceptedByBase,
@@ -181,6 +183,13 @@ export const FLOW_SCHEDULER_OPTIONS_WITHOUT_LCM: SchedulerOption[] = [
   { label: 'Heun (2nd order)', value: 'heun' },
 ];
 
+export const CHROMA_SCHEDULER_OPTIONS: SchedulerOption[] = [
+  { label: 'Euler', value: 'euler' },
+  { label: 'Euler CFG++ (Beta)', value: 'euler_cfg_pp_beta' },
+  { label: 'Heun (2nd order)', value: 'heun' },
+  { label: 'LCM', value: 'lcm' },
+];
+
 export const ANIMA_SCHEDULER_OPTIONS: SchedulerOption[] = [
   { label: 'Euler', value: 'euler' },
   { label: 'Heun (2nd order)', value: 'heun' },
@@ -194,8 +203,9 @@ const KNOWN_SCHEDULERS = new Set(SCHEDULER_OPTIONS.map((option) => option.value)
 const FLOW_SCHEDULERS = new Set(FLOW_SCHEDULER_OPTIONS.map((option) => option.value));
 const FLOW_SCHEDULERS_WITHOUT_LCM = new Set(FLOW_SCHEDULER_OPTIONS_WITHOUT_LCM.map((option) => option.value));
 const ANIMA_SCHEDULERS = new Set(ANIMA_SCHEDULER_OPTIONS.map((option) => option.value));
+const CHROMA_SCHEDULERS = new Set(CHROMA_SCHEDULER_OPTIONS.map((option) => option.value));
 
-export const isKnownScheduler = (value: string): boolean => KNOWN_SCHEDULERS.has(value);
+export const isKnownScheduler = (value: string): boolean => KNOWN_SCHEDULERS.has(value) || CHROMA_SCHEDULERS.has(value);
 
 export { isSupportedGenerateBase, SUPPORTED_GENERATE_BASES, type SupportedGenerateBase };
 
@@ -303,6 +313,8 @@ export const getSchedulerOptions = (
         return FLOW_SCHEDULER_OPTIONS_WITHOUT_LCM;
       case 'anima':
         return ANIMA_SCHEDULER_OPTIONS;
+      case 'chroma':
+        return CHROMA_SCHEDULER_OPTIONS;
       case 'standard':
         return SCHEDULER_OPTIONS;
     }
@@ -334,6 +346,8 @@ export const coerceSchedulerForGraph = (
       return FLOW_SCHEDULERS_WITHOUT_LCM.has(scheduler) ? scheduler : 'euler';
     case 'anima':
       return ANIMA_SCHEDULERS.has(scheduler) ? scheduler : 'euler';
+    case 'chroma':
+      return CHROMA_SCHEDULERS.has(scheduler) ? scheduler : 'euler';
     case 'standard':
       return KNOWN_SCHEDULERS.has(scheduler) ? scheduler : config.defaults.scheduler;
   }
@@ -341,7 +355,7 @@ export const coerceSchedulerForGraph = (
 
 export const getPromptPolicy = (
   model: GenerateModelConfig | undefined,
-  settings: Pick<GenerateSettings, 'cfgScale' | 'negativePromptEnabled'>
+  settings: Pick<GenerateSettings, 'cfgScale' | 'negativePromptEnabled'> & Partial<Pick<GenerateSettings, 'scheduler'>>
 ) => {
   if (model?.type === 'external_image_generator') {
     const supportsNegativePrompt = model.capabilities?.supports_negative_prompt === true;
@@ -354,16 +368,22 @@ export const getPromptPolicy = (
 
   const config = getBaseGenerationConfig(model);
   // Visibility controls the textarea; usage controls whether the graph wires negative conditioning.
+  // Euler CFG++ steps on the difference between both branches, so it needs the negative prompt at any CFG.
+  const negativeAlwaysUsed = model?.base === 'chroma' && settings.scheduler === 'euler_cfg_pp_beta';
   const negativeUsedInGraph =
     settings.negativePromptEnabled &&
     (config.negativePrompt.usage === 'always' ||
-      (config.negativePrompt.usage === 'cfg-gated' && settings.cfgScale > 1));
+      (config.negativePrompt.usage === 'cfg-gated' && (settings.cfgScale > 1 || negativeAlwaysUsed)));
 
   return {
     negativeVisible: config.negativePrompt.visible,
     negativeUsedInGraph,
     ...(config.negativePrompt.usage === 'cfg-gated'
-      ? { negativeHelpText: 'Used only when CFG is greater than 1.' }
+      ? {
+          negativeHelpText: negativeAlwaysUsed
+            ? 'Always used with Euler CFG++.'
+            : 'Used only when CFG is greater than 1.',
+        }
       : {}),
   };
 };
@@ -978,6 +998,23 @@ const getBaseComponentSectionPolicy = (
           ...validateSlots(getBaseComponentSectionPolicy(ctx.model, ctx.settings), ctx),
         ],
       };
+    case 'chroma':
+      // A complete Diffusers pipeline brings its own T5-XXL encoder and VAE; a loose transformer or a single file does not.
+      return createPolicy(!isSelfContainedChromaPipeline(model), [
+        {
+          ...t5EncoderSlot('Required unless the Chroma pipeline bundles its own T5-XXL encoder.'),
+          required: (ctx) => !isSelfContainedChromaPipeline(ctx.model),
+          missingMessage: 'Generate needs a T5 Encoder for Chroma models.',
+        },
+        {
+          ...vaeSlot(
+            'Chroma decodes with the FLUX.1 VAE, so FLUX-base VAEs are listed. Required unless the Chroma pipeline bundles one.',
+            isAcceptedVae
+          ),
+          required: (ctx) => !isSelfContainedChromaPipeline(ctx.model),
+          missingMessage: 'Generate needs a VAE for Chroma models.',
+        },
+      ]);
     case 'flux2': {
       const encoderSlot: ComponentSlotPolicy =
         model.variant === 'dev'
@@ -1481,6 +1518,19 @@ const getFamilyDefaultReferenceImageConfig = (
     return { image, type: 'flux2_reference_image' };
   }
 
+  // Chroma takes FLUX Redux conditioning only.
+  if (modelBase === 'chroma') {
+    return {
+      image,
+      imageInfluence: 'highest',
+      model:
+        models.find(
+          (candidate) => candidate.type === 'flux_redux' && isAdapterBaseCompatible('chroma', candidate.base)
+        ) ?? null,
+      type: 'flux_redux',
+    };
+  }
+
   if (modelBase === 'qwen-image') {
     return { image, type: 'qwen_image_reference_image' };
   }
@@ -1528,7 +1578,7 @@ const getReferenceImageConfigSupported = (
     case 'flux_kontext_reference_image':
       return isFluxKontextModel(model);
     case 'flux_redux':
-      return model.type !== 'external_image_generator' && model.base === 'flux';
+      return model.type !== 'external_image_generator' && (model.base === 'flux' || model.base === 'chroma');
     case 'ip_adapter':
       // `isReferenceImageSupported` applies the backend's variant gate: Anima only on its Qwen3 releases.
       return IP_ADAPTER_BASES.has(model.base) && isReferenceImageSupported(model);
@@ -1546,7 +1596,7 @@ export const isReferenceImageCompatibleWithModel = (
   const config = referenceImage.config;
 
   if ((config.type === 'ip_adapter' || config.type === 'flux_redux') && config.model) {
-    return config.model.base === model.base;
+    return isAdapterBaseCompatible(model.base, config.model.base);
   }
 
   if (config.type === 'flux_kontext_reference_image' && config.model) {
@@ -2078,7 +2128,7 @@ const getReferenceImageValidationReasons = (model: GenerateModelConfig, settings
     }
 
     if (referenceImage.config.type === 'flux_redux') {
-      if (!referenceImage.config.model || referenceImage.config.model.base !== model.base) {
+      if (!referenceImage.config.model || !isAdapterBaseCompatible(model.base, referenceImage.config.model.base)) {
         reasons.push(`${prefix} needs a compatible FLUX Redux model.`);
       }
     }

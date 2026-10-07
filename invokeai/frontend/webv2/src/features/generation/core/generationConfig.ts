@@ -1,6 +1,6 @@
 /** Shared types avoid a mapper/policy circular dependency. */
 
-export type SchedulerSetId = 'standard' | 'flow' | 'flow-no-lcm' | 'anima';
+export type SchedulerSetId = 'standard' | 'flow' | 'flow-no-lcm' | 'anima' | 'chroma';
 
 export type NegativePromptUsage = 'always' | 'cfg-gated' | 'never';
 

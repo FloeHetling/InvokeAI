@@ -2,7 +2,7 @@ import type { ControlAdapterKind } from '@features/generation/graph';
 import type { ModelConfig } from '@features/models';
 import type { CanvasControlLayerContract, ControlType } from '@workbench/canvas-engine/api';
 
-import { getControlModelUnusableReason } from '@features/generation/graph';
+import { getControlModelUnusableReason, isAdapterBaseCompatible } from '@features/generation/graph';
 import { CONTROL_TYPES } from '@workbench/canvas-engine/api';
 
 import { deriveControlKind, getDefaultControlAdapterKind } from './controlAdapters';
@@ -59,9 +59,12 @@ interface CandidateSets {
   unions: ModelConfig[];
 }
 
-/** A model a layer on `base` can run: same base, a control kind the base supports, and nothing about it refused. */
+/**
+ * A model a layer on `base` can run: its own base or one the architecture declares (Chroma runs FLUX ControlNets), a
+ * control kind the base supports, and nothing about it refused.
+ */
 const usableKind = (model: ModelConfig, base: string | null, supportsKind: SupportsKind): ControlAdapterKind | null => {
-  if (base !== null && model.base !== base) {
+  if (base !== null && !isAdapterBaseCompatible(base, model.base)) {
     return null;
   }
   const kind = deriveControlKind(model);
@@ -139,7 +142,7 @@ export const resolveControlModel = (input: {
         (modelClass.family === family || (modelClass.union && modelClass.covers.includes(family))),
       how,
       instantxControlMode:
-        base === 'flux' && modelClass?.union ? (CONTROL_TYPE_SPECS[type].instantxMode[family] ?? null) : null,
+        model?.base === 'flux' && modelClass?.union ? (CONTROL_TYPE_SPECS[type].instantxMode[family] ?? null) : null,
       kind: (model ? deriveControlKind(model) : null) ?? getDefaultControlAdapterKind(base),
       model,
       unresolved,
