@@ -38,6 +38,14 @@ export const SHAPE_OVERRIDES: Partial<Record<SupportedGenerateBase, readonly Mod
     { label: 'diffusers', overrides: { format: 'diffusers' } },
     { label: 'standalone-components', overrides: { branch: 'conditional', format: 'checkpoint' } },
   ],
+  // A complete Diffusers pipeline bundles Chroma's T5-XXL encoder and VAE; a single file needs both picked.
+  chroma: [
+    {
+      label: 'diffusers-pipeline',
+      overrides: { format: 'diffusers', submodels: { text_encoder: {}, tokenizer: {}, transformer: {}, vae: {} } },
+    },
+    { label: 'standalone-components', overrides: { format: 'checkpoint' } },
+  ],
   // FLUX.2 dev and Klein need distinct encoder variants.
   flux2: [
     { label: 'dev-diffusers', overrides: { format: 'diffusers', variant: 'dev' } },

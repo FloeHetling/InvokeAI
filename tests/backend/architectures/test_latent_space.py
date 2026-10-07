@@ -53,6 +53,7 @@ DECLARED_LATENT_SPACES: dict[BaseModelType, tuple[LatentSpace, ...]] = {
     # Wan 2.1 matrix under a second name. Same for Krea-2 and Qwen-Image, which shared a third copy
     # (QWEN_IMAGE_*). The merge into one `WAN21_16` is the change; the numbers are unchanged.
     BaseModelType.Anima: (WAN21_16,),
+    BaseModelType.Chroma: (FLUX_16,),
     BaseModelType.CogView4: (COGVIEW4_16,),
     BaseModelType.ErnieImage: (FLUX2_32,),
     BaseModelType.Flux: (FLUX_16,),

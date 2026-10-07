@@ -137,6 +137,7 @@ from invokeai.backend.stable_diffusion.diffusers_pipeline import PipelineInterme
 from invokeai.backend.stable_diffusion.diffusion.conditioning_data import (
     AnimaConditioningInfo,
     BasicConditioningInfo,
+    ChromaConditioningInfo,
     CogView4ConditioningInfo,
     ConditioningFieldData,
     ErnieImageConditioningInfo,
@@ -237,6 +238,7 @@ __all__ = [
     # tests/backend/architectures/test_conditioning.py.
     "AnimaConditioningInfo",
     "BasicConditioningInfo",
+    "ChromaConditioningInfo",
     "CogView4ConditioningInfo",
     "ConditioningFieldData",
     "ErnieImageConditioningInfo",

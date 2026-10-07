@@ -118,6 +118,25 @@
         "string"
       ]
     },
+    "chroma": {
+      "componentsFilled": {
+        "diffusers-pipeline": [],
+        "standalone-components": [
+          "t5EncoderModel",
+          "vae"
+        ]
+      },
+      "nodeTypes": [
+        "chroma_denoise",
+        "chroma_model_loader",
+        "chroma_text_encoder",
+        "collect",
+        "core_metadata",
+        "flux_vae_decode",
+        "integer",
+        "string"
+      ]
+    },
     "cogview4": {
       "componentsFilled": {
         "diffusers": [],
@@ -367,6 +386,83 @@
         "conditioning"
       ]
     },
+    "chroma_denoise": {
+      "inputs": [
+        "controlnet_vae",
+        "negative_text_conditioning",
+        "positive_text_conditioning",
+        "seed",
+        "transformer"
+      ],
+      "literalInputs": {
+        "cfg_scale": [
+          3
+        ],
+        "denoising_end": [
+          1
+        ],
+        "denoising_start": [
+          0
+        ],
+        "height": [
+          1024
+        ],
+        "is_intermediate": [
+          true
+        ],
+        "num_steps": [
+          40
+        ],
+        "scheduler": [
+          "euler"
+        ],
+        "use_cache": [
+          true
+        ],
+        "width": [
+          1024
+        ]
+      },
+      "outputs": [
+        "latents"
+      ]
+    },
+    "chroma_model_loader": {
+      "inputs": [],
+      "literalInputs": {
+        "is_intermediate": [
+          true
+        ],
+        "model": [],
+        "t5_encoder_model": [],
+        "use_cache": [
+          true
+        ],
+        "vae_model": []
+      },
+      "outputs": [
+        "t5_encoder",
+        "transformer",
+        "vae"
+      ]
+    },
+    "chroma_text_encoder": {
+      "inputs": [
+        "prompt",
+        "t5_encoder"
+      ],
+      "literalInputs": {
+        "is_intermediate": [
+          true
+        ],
+        "use_cache": [
+          true
+        ]
+      },
+      "outputs": [
+        "conditioning"
+      ]
+    },
     "clip_skip": {
       "inputs": [
         "clip"
@@ -512,6 +608,7 @@
         ],
         "cfg_scale": [
           1,
+          3,
           3.5,
           4,
           4.5,
@@ -524,6 +621,7 @@
         ],
         "generation_mode": [
           "anima_txt2img",
+          "chroma_txt2img",
           "cogview4_txt2img",
           "ernie_image_txt2img",
           "flux_txt2img",

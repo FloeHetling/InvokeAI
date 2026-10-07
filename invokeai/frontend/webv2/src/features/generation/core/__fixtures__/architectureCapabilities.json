@@ -16,6 +16,7 @@
       "control_kinds": [
         "anima_lllite"
       ],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -74,6 +75,7 @@
       "control_kinds": [
         "anima_lllite"
       ],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -116,6 +118,59 @@
     }
   },
   {
+    "base": "chroma",
+    "variant": null,
+    "features": {
+      "negative_prompt": {
+        "visible": true,
+        "usage": "cfg-gated"
+      },
+      "dimension_grid": 16,
+      "guidance_label": "CFG",
+      "guidance_min": 1.0,
+      "guidance_max": null,
+      "scheduler_set": "chroma",
+      "scheduler_applies_to_graph": true,
+      "control_kinds": [
+        "controlnet"
+      ],
+      "adapter_bases": [
+        "flux"
+      ],
+      "max_reference_images": 5,
+      "reference_images_require_variant": null,
+      "supports_regional_guidance": false,
+      "regional_negative": false,
+      "clip_skip_max": null,
+      "supports_seamless": false,
+      "supports_cfg_rescale": false,
+      "sd_vae_override": false,
+      "color_compensation": false,
+      "vae_precision": false
+    },
+    "defaults": {
+      "vae": null,
+      "vae_precision": null,
+      "scheduler": "euler",
+      "steps": 40,
+      "cfg_scale": 3.0,
+      "cfg_rescale_multiplier": null,
+      "width": 1024,
+      "height": 1024,
+      "guidance": null,
+      "cpu_only": null,
+      "fp8_storage": null
+    },
+    "vae": {
+      "accepted": [
+        {
+          "base": "flux",
+          "latent_channels": null
+        }
+      ]
+    }
+  },
+  {
     "base": "cogview4",
     "variant": null,
     "features": {
@@ -130,6 +185,7 @@
       "scheduler_set": "standard",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -171,6 +227,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -222,6 +279,7 @@
         "control_lora",
         "controlnet"
       ],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -266,6 +324,7 @@
         "control_lora",
         "controlnet"
       ],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -310,6 +369,7 @@
         "control_lora",
         "controlnet"
       ],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -351,6 +411,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -392,6 +453,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -433,6 +495,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -474,6 +537,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -515,6 +579,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -563,6 +628,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -615,6 +681,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -667,6 +734,7 @@
       "scheduler_set": null,
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -708,6 +776,7 @@
       "scheduler_set": null,
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -749,6 +818,7 @@
       "scheduler_set": null,
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -790,6 +860,7 @@
       "scheduler_set": "standard",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": "edit",
       "supports_regional_guidance": false,
@@ -845,6 +916,7 @@
         "controlnet",
         "t2i_adapter"
       ],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -886,6 +958,7 @@
       "scheduler_set": "standard",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -927,6 +1000,7 @@
       "scheduler_set": "standard",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -971,6 +1045,7 @@
         "controlnet",
         "t2i_adapter"
       ],
+      "adapter_bases": [],
       "max_reference_images": 5,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -1012,6 +1087,7 @@
       "scheduler_set": "standard",
       "scheduler_applies_to_graph": true,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -1053,6 +1129,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -1101,6 +1178,7 @@
       "scheduler_set": "flow",
       "scheduler_applies_to_graph": false,
       "control_kinds": [],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": false,
@@ -1151,6 +1229,7 @@
       "control_kinds": [
         "z_image_control"
       ],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,
@@ -1201,6 +1280,7 @@
       "control_kinds": [
         "z_image_control"
       ],
+      "adapter_bases": [],
       "max_reference_images": 0,
       "reference_images_require_variant": null,
       "supports_regional_guidance": true,

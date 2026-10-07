@@ -231,3 +231,38 @@ class T5Encoder_GGUF_Config(Checkpoint_Config_Base, Config_Base):
         has_ggml = any(isinstance(v, GGMLTensor) for v in mod.load_state_dict().values())
         if not has_ggml:
             raise NotAMatchError("state dict does not look like GGUF quantized")
+
+
+class T5Encoder_Checkpoint_Config(Checkpoint_Config_Base, Config_Base):
+    """Configuration for a raw Transformers-format T5-XXL encoder safetensors file.
+
+    FLUX/Chroma T5-XXL encoders are commonly distributed this way, without a
+    sibling ``config.json`` or tokenizer. InvokeAI supplies the canonical T5
+    configuration and its bundled tokenizer when loading this format.
+    """
+
+    base: Literal[BaseModelType.Any] = Field(default=BaseModelType.Any)
+    type: Literal[ModelType.T5Encoder] = Field(default=ModelType.T5Encoder)
+    format: Literal[ModelFormat.Checkpoint] = Field(default=ModelFormat.Checkpoint)
+    cpu_only: bool | None = Field(default=None, description="Whether this model should run on CPU only")
+
+    @classmethod
+    def from_model_on_disk(cls, mod: ModelOnDisk, override_fields: dict[str, Any]) -> Self:
+        raise_if_not_file(mod)
+        raise_for_override_fields(cls, override_fields)
+
+        state_dict = mod.load_state_dict()
+        required_keys = {
+            "shared.weight",
+            "encoder.block.0.layer.0.SelfAttention.q.weight",
+            "encoder.block.23.layer.1.DenseReluDense.wo.weight",
+            "encoder.final_layer_norm.weight",
+        }
+        if not required_keys.issubset(state_dict):
+            raise NotAMatchError("state dict does not look like a raw T5-XXL encoder")
+
+        shared = state_dict["shared.weight"]
+        if tuple(shared.shape) != (32128, 4096):
+            raise NotAMatchError(f"unsupported T5 embedding shape: {tuple(shared.shape)}")
+
+        return cls(**override_fields)

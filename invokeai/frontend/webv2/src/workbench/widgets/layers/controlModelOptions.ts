@@ -3,6 +3,7 @@ import type { CanvasControlAdapterContract } from '@workbench/canvas-engine/api'
 
 import {
   areControlAdapterValuesValid,
+  isAdapterBaseCompatible,
   isControlModelUsableForKind,
   type ControlAdapterKind,
 } from '@features/generation/graph';
@@ -17,7 +18,9 @@ export const getCompatibleControlModels = (
   if (requiredBase && base !== requiredBase) {
     return [];
   }
-  return models.filter((model) => isControlModelUsableForKind(model, kind) && (!base || model.base === base));
+  return models.filter(
+    (model) => isControlModelUsableForKind(model, kind) && (!base || isAdapterBaseCompatible(base, model.base))
+  );
 };
 
 /**
@@ -49,8 +52,9 @@ export const switchControlAdapterKind = (
 
 /**
  * The control model a freshly created layer should start with: a union model
- * (the generalist), then tile, then the first compatible model. Null when no
- * compatible model is installed.
+ * (the generalist; the lighter "Pro" build of it where both are installed), then
+ * tile, then the first compatible model. Null when no compatible model is
+ * installed.
  */
 export const resolveDefaultControlModel = (
   models: readonly ModelConfig[],
@@ -58,8 +62,12 @@ export const resolveDefaultControlModel = (
   kind: ControlAdapterKind
 ): string | null => {
   const compatible = getCompatibleControlModels(models, base, kind);
+  const unions = compatible.filter((model) => model.name.toLowerCase().includes('union'));
+  // FLUX and Chroma ship a Union Pro build that is the lighter, better-behaved one; other bases keep the first union.
+  const prefersPro = base === 'flux' || base === 'chroma';
   const preferred =
-    compatible.find((model) => model.name.toLowerCase().includes('union')) ??
+    (prefersPro ? unions.find((model) => /\bpro\b/i.test(model.name)) : undefined) ??
+    unions[0] ??
     compatible.find((model) => model.name.toLowerCase().includes('tile')) ??
     compatible[0];
   return preferred?.key ?? null;

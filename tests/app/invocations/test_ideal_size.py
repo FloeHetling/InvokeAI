@@ -47,6 +47,7 @@ def _invoke(
 # to 8 for everything -- a FLUX size came back off-grid and the denoise node then rejected it.
 IDEAL_SIZE_AT_NODE_DEFAULTS: dict[BaseModelType, tuple[int, int]] = {
     BaseModelType.Anima: (1360, 768),
+    BaseModelType.Chroma: (1360, 768),
     BaseModelType.CogView4: (1344, 768),
     BaseModelType.ErnieImage: (1360, 768),
     BaseModelType.Flux: (1360, 768),

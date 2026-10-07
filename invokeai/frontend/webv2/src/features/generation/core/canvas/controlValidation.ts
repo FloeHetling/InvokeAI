@@ -1,6 +1,7 @@
 import {
   getArchitectureFeatures,
   hasArchitectureCapabilities,
+  isAdapterBaseCompatible,
 } from '@features/generation/core/architectureCapabilities';
 
 /** Every adapter kind a control layer can carry, in the order pickers list them. */
@@ -118,7 +119,10 @@ export const getControlValidationReason = (params: {
   if (!capabilitiesLoaded) {
     return 'capabilities_unavailable';
   }
-  if (adapterModel.base !== mainBase) {
+  if (!isControlKindSupportedForBase(mainBase, kind)) {
+    return 'unsupported_adapter';
+  }
+  if (!isAdapterBaseCompatible(mainBase, adapterModel.base)) {
     return 'incompatible_base';
   }
   const modelReason = getControlModelUnusableReason(adapterModel, kind);

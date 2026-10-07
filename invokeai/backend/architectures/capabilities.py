@@ -67,6 +67,10 @@ class ArchitectureFeatures(BaseModel):
     )
     scheduler_applies_to_graph: bool = False
     control_kinds: list[ControlKind] = Field(default_factory=list, description="Sorted.")
+    adapter_bases: list[BaseModelType] = Field(
+        default_factory=list,
+        description="Sorted. Bases whose ControlNet and Redux adapters are accepted beside the architecture's own.",
+    )
     max_reference_images: int = 0
     reference_images_require_variant: str | None = Field(
         default=None,
@@ -135,6 +139,7 @@ def _features_of(facet: FeaturesFacet, variant: AnyVariant | None = None) -> Arc
         scheduler_set=facet.resolve_scheduler_set(variant),
         scheduler_applies_to_graph=facet.scheduler_applies_to_graph,
         control_kinds=sorted(facet.control_kinds),
+        adapter_bases=sorted(facet.adapter_bases),
         max_reference_images=facet.max_reference_images,
         reference_images_require_variant=facet.reference_images_require_variant,
         supports_regional_guidance=facet.supports_regional_guidance,
