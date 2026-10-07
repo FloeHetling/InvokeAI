@@ -55,6 +55,8 @@ Prompts of any length are encoded without padding or truncation. `(text:1.3)`, `
 supported by moving the embedding away from an all-padding baseline. `(text)` is 1.1, a number replaces it, and the
 weights of nested groups multiply. The `+` and `-` shorthands are not read, so turn on **Prefer numeric attention
 style** in the preferences for the prompt hotkeys.
+Set `log_tokenization: true` in `invokeai.yaml` to print, for every encoded prompt, the tokens T5 receives with the weight
+of each segment and notes on weight syntax that was left as plain text.
 
 ## Reference images (FLUX Redux)
 
