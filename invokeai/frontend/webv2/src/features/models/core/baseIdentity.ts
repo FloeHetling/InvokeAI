@@ -82,6 +82,11 @@ export const MODEL_BASES = {
     label: 'FLUX.2',
     colorPalette: 'ice',
   },
+  chroma: {
+    base: 'chroma',
+    label: 'Chroma',
+    colorPalette: 'gray',
+  },
   cogview4: {
     base: 'cogview4',
     label: 'CogView4',

@@ -31,8 +31,8 @@ export const NULL_BASE_ALLOWANCES: Readonly<Partial<Record<ModelTaxonomyType, Re
   qwen_vl_encoder: new Set(['qwen-image']),
   /** FLUX Redux image encoder (flux_redux). */
   siglip: new Set(['flux']),
-  /** flux_model_loader, sd3_model_loader. */
-  t5_encoder: new Set(['flux', 'sd-3']),
+  /** flux_model_loader, sd3_model_loader, chroma_model_loader. */
+  t5_encoder: new Set(['chroma', 'flux', 'sd-3']),
   /** wan_model_loader. */
   wan_t5_encoder: new Set(['wan']),
 };
@@ -45,12 +45,20 @@ export const CROSS_BASE_ALLOWANCES: Readonly<
   vae: {
     /** krea2_model_loader (accepts QwenImage and Anima VAEs). */
     anima: new Set(['krea-2']),
-    /** z_image_model_loader; flux2_klein_model_loader; anima_model_loader ("A FLUX VAE can also be used"). */
-    flux: new Set(['anima', 'flux2', 'z-image']),
+    /** z_image_model_loader; flux2_klein_model_loader; anima_model_loader ("A FLUX VAE can also be used"); chroma_model_loader. */
+    flux: new Set(['anima', 'chroma', 'flux2', 'z-image']),
     /** krea2_model_loader; anima_model_loader ("Wan 2.1 / QwenImage VAE"). */
     'qwen-image': new Set(['anima', 'krea-2']),
     /** anima_model_loader ("Wan 2.1 / QwenImage VAE"). */
     wan: new Set(['anima']),
+  },
+  /** chroma_denoise runs FLUX.1 ControlNets (FeaturesFacet.adapter_bases). */
+  controlnet: {
+    flux: new Set(['chroma']),
+  },
+  /** chroma_denoise takes FLUX Redux conditioning (FeaturesFacet.adapter_bases). */
+  flux_redux: {
+    flux: new Set(['chroma']),
   },
   /** z_image_pid_decode reuses the FLUX decoder (assert_pid_decoder_matches_base). */
   pid_decoder: {

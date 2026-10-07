@@ -49,6 +49,20 @@ describe('getControlValidationReason', () => {
     ).toBe('flux_fill_control_lora');
   });
 
+  it('lets a Chroma main model use FLUX ControlNets, and no other main model', () => {
+    const fluxControlNet = { ...valid, adapterModel: { base: 'flux', type: 'controlnet' } };
+
+    expect(getControlValidationReason({ ...fluxControlNet, mainBase: 'chroma' })).toBeNull();
+    expect(getControlValidationReason({ ...fluxControlNet, mainBase: 'sd-1' })).toBe('incompatible_base');
+    expect(
+      getControlValidationReason({
+        ...fluxControlNet,
+        adapterModel: { base: 'sdxl', type: 'controlnet' },
+        mainBase: 'chroma',
+      })
+    ).toBe('incompatible_base');
+  });
+
   it('accepts only a Z-Image ControlNet model on a Z-Image main model', () => {
     const zImage = {
       adapterModel: { base: 'z-image', type: 'controlnet' },

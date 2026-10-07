@@ -15,14 +15,14 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Literal
 
 from invokeai.backend.architectures.facet import Facet
-from invokeai.backend.model_manager.taxonomy import AnyVariant
+from invokeai.backend.model_manager.taxonomy import AnyVariant, BaseModelType
 
 NegativePromptUsage = Literal["always", "cfg-gated", "never"]
 """`cfg-gated` means the field exists but only does anything above CFG 1 — the distilled models."""
 
 ControlKind = Literal["controlnet", "t2i_adapter", "control_lora", "z_image_control"]
 
-SchedulerSet = Literal["standard", "flow", "flow-no-lcm", "anima"]
+SchedulerSet = Literal["standard", "flow", "flow-no-lcm", "anima", "chroma"]
 """Which family of schedulers to offer. `None` means the architecture drives its own and offers no
 choice — MiniMax H3 steps video and audio down two hardcoded flow schedules. `flow-no-lcm` is the flow
 set without LCM, for a variant whose schedule LCM does not fit."""
@@ -109,6 +109,12 @@ class FeaturesFacet(Facet):
     """Whether the chosen scheduler reaches the graph, or is only a UI affordance."""
 
     control_kinds: frozenset[ControlKind] = frozenset()
+    adapter_bases: frozenset[BaseModelType] = frozenset()
+    """Bases whose ControlNet and reference-image (Redux) adapters this architecture accepts beside its own.
+
+    Chroma is the one that names another: its transformer keeps FLUX.1's block layout, so FLUX.1 ControlNets and
+    Redux conditioning drive it, while IP-Adapters (a different attention layout) stay FLUX-only."""
+
     max_reference_images: int = 0
     reference_images_require_variant: str | None = None
     """Qwen-Image accepts reference images only as the `edit` variant — the one feature in this

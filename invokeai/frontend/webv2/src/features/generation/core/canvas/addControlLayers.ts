@@ -52,7 +52,9 @@ export interface AddControlLayersOptions {
 }
 
 /** Resolves the backend node type for a controlnet layer on `base`. */
-const controlNetNodeType = (base: string): string => (base === 'flux' ? 'flux_controlnet' : 'controlnet');
+const isFluxControlNetBase = (base: string): boolean => base === 'flux' || base === 'chroma';
+
+const controlNetNodeType = (base: string): string => (isFluxControlNetBase(base) ? 'flux_controlnet' : 'controlnet');
 
 /** Validate defensively through the shared policy before graph wiring. */
 export const addControlLayers = (graph: BackendGraphContract, options: AddControlLayersOptions): void => {
@@ -109,7 +111,7 @@ export const addControlLayers = (graph: BackendGraphContract, options: AddContro
         resize_mode: 'just_resize',
         type: controlNetNodeType(base),
         // FLUX ControlNet has no control_mode; SD-family carries it.
-        ...(base === 'flux' ? {} : { control_mode: layer.controlMode ?? 'balanced' }),
+        ...(isFluxControlNetBase(base) ? {} : { control_mode: layer.controlMode ?? 'balanced' }),
       });
       addEdge(graph, node, 'control', ensureControlNetCollector(), 'item');
     } else if (layer.kind === 't2i_adapter') {

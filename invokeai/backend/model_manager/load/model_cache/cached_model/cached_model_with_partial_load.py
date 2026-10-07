@@ -388,6 +388,10 @@ class CachedModelWithPartialLoad:
             # loops until settled.
             raise ValueError(f"max_bytes must be positive when set; got {max_bytes}.")
 
+        # A reserve larger than the free VRAM leaves a negative budget; it means the same as zero, and would otherwise
+        # be reported as a request for a negative number of megabytes.
+        vram_bytes_to_load = max(0, vram_bytes_to_load)
+
         vram_bytes_loaded = 0
         truncated = False
 

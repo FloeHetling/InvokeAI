@@ -18,6 +18,19 @@ const sd2Model: MainModelConfig = { base: 'sd-2', key: 'sd2-model', name: 'SD 2'
 const sdxlModel: MainModelConfig = { base: 'sdxl', key: 'sdxl-model', name: 'SDXL', type: 'main' };
 const sd3Model: MainModelConfig = { base: 'sd-3', key: 'sd3-model', name: 'SD3', type: 'main' };
 const fluxModel: MainModelConfig = { base: 'flux', key: 'flux-model', name: 'FLUX dev', type: 'main' };
+const chromaModel: MainModelConfig = {
+  base: 'chroma',
+  format: 'checkpoint',
+  key: 'chroma-model',
+  name: 'Chroma1-HD',
+  type: 'main',
+};
+const chromaPipeline: MainModelConfig = {
+  ...chromaModel,
+  format: 'diffusers',
+  key: 'chroma-pipeline',
+  submodels: { text_encoder: {}, tokenizer: {}, transformer: {}, vae: {} },
+};
 const flux2Model: MainModelConfig = {
   base: 'flux2',
   format: 'diffusers',
@@ -422,6 +435,54 @@ describe('compileGenerateGraph', () => {
     expect(graph.nodes.canvas_output?.type).toBe('flux_vae_decode');
     expect(loraLoader).toBeDefined();
     expect(getEdge(graph, 'denoise_latents', 'transformer')?.source.node_id).toBe(loraLoader?.id);
+  });
+
+  it('builds a Chroma graph that takes T5 and the FLUX VAE from the pickers for a single file', () => {
+    const graph = compile(chromaModel, { t5EncoderModel: t5Encoder, vae: fluxVae });
+
+    expect(graph.nodes.model_loader).toMatchObject({
+      t5_encoder_model: t5Encoder,
+      type: 'chroma_model_loader',
+      vae_model: fluxVae,
+    });
+    expect(graph.nodes.denoise_latents).toMatchObject({ num_steps: 40, scheduler: 'euler', type: 'chroma_denoise' });
+    expect(graph.nodes.canvas_output?.type).toBe('flux_vae_decode');
+    expect(getNodeByType(graph, 'core_metadata')?.generation_mode).toBe('chroma_txt2img');
+    expect(() => compile(chromaModel)).toThrow('Generate needs a T5 Encoder for Chroma models.');
+    // A complete Diffusers pipeline supplies both itself, unless the user picked others.
+    expect(compile(chromaPipeline).nodes.model_loader?.t5_encoder_model).toBeUndefined();
+    expect(compile(chromaPipeline, { t5EncoderModel: t5Encoder, vae: fluxVae }).nodes.model_loader).toMatchObject({
+      t5_encoder_model: t5Encoder,
+      vae_model: fluxVae,
+    });
+  });
+
+  it('adds Chroma negative conditioning above CFG 1 and for Euler CFG++, which always needs it', () => {
+    const overrides = { t5EncoderModel: t5Encoder, vae: fluxVae };
+
+    expect(compile(chromaModel, { ...overrides, cfgScale: 1 }).nodes.neg_cond).toBeUndefined();
+    expect(compile(chromaModel, { ...overrides, cfgScale: 3 }).nodes.neg_cond?.type).toBe('chroma_text_encoder');
+
+    const cfgPp = compile(chromaModel, { ...overrides, cfgScale: 1, scheduler: 'euler_cfg_pp_beta' });
+
+    expect(cfgPp.nodes.denoise_latents?.scheduler).toBe('euler_cfg_pp_beta');
+    expect(getEdge(cfgPp, 'denoise_latents', 'negative_text_conditioning')).toBeDefined();
+  });
+
+  it('drives Chroma from FLUX Redux but not from FLUX IP adapters', () => {
+    const graph = compile(chromaPipeline, {
+      referenceImages: [
+        {
+          id: 'ref-redux',
+          isEnabled: true,
+          config: { image: refImage, imageInfluence: 'high', model: fluxRedux, type: 'flux_redux' },
+        },
+      ],
+    });
+
+    expect(getNodeByType(graph, 'flux_redux')).toMatchObject({ redux_model: fluxRedux });
+    expect(getEdge(graph, 'denoise_latents', 'redux_conditioning')).toBeDefined();
+    expect(getEdge(graph, 'denoise_latents', 'controlnet_vae')?.source.node_id).toBe('model_loader');
   });
 
   it('fails early when required FLUX components are missing', () => {

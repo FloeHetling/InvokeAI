@@ -15,6 +15,7 @@ def test_pinned_diffusers_exposes_existing_and_krea_model_contracts() -> None:
 
     expected_symbols = (
         "AutoencoderKLFlux2",
+        "ChromaTransformer2DModel",
         "FluxTransformer2DModel",
         "Flux2Transformer2DModel",
         "Krea2Transformer2DModel",

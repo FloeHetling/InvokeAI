@@ -11,6 +11,8 @@ class FluxTextConditioning:
     clip_embeddings: torch.Tensor
     # If mask is None, the prompt is a global prompt.
     mask: torch.Tensor | None
+    # Chroma uses a per-token attention mask. FLUX leaves this unset.
+    attention_mask: torch.Tensor | None = None
 
 
 @dataclass
@@ -41,3 +43,6 @@ class FluxRegionalTextConditioning:
     # List of ranges that represent the embedding ranges for each mask.
     # t5_embedding_ranges[i] contains the range of the t5 embeddings that correspond to image_masks[i].
     t5_embedding_ranges: list[Range]
+
+    # Concatenated per-token attention masks. Used by Chroma; None for FLUX.
+    attention_mask: torch.Tensor | None = None

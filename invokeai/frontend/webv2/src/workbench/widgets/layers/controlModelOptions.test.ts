@@ -1,5 +1,10 @@
 import type { ModelConfig } from '@features/models';
 
+import {
+  resetArchitectureCapabilities,
+  setArchitectureCapabilities,
+} from '@features/generation/core/architectureCapabilities';
+import { architectureCapabilitiesFixture } from '@features/generation/core/architectureCapabilities.testing';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -36,6 +41,35 @@ describe('getCompatibleControlModels', () => {
 });
 
 describe('resolveDefaultControlModel', () => {
+  it('offers FLUX ControlNets to Chroma once the capability rows are loaded', () => {
+    const models = [model('flux-cn', 'flux', 'controlnet'), model('sdxl-cn', 'sdxl', 'controlnet')];
+
+    setArchitectureCapabilities(architectureCapabilitiesFixture);
+    try {
+      expect(getCompatibleControlModels(models, 'chroma', 'controlnet').map((candidate) => candidate.key)).toEqual([
+        'flux-cn',
+      ]);
+    } finally {
+      resetArchitectureCapabilities();
+    }
+  });
+
+  it('keeps the first union model on bases without a Pro build', () => {
+    const models = [model('Union', 'sdxl', 'controlnet'), model('Union Pro', 'sdxl', 'controlnet')];
+
+    expect(resolveDefaultControlModel(models, 'sdxl', 'controlnet')).toBe('Union');
+  });
+
+  it('takes the Pro build of a union model over its plain sibling', () => {
+    const models = [
+      model('union', 'flux', 'controlnet'),
+      model('FLUX Union Pro 2.0', 'flux', 'controlnet'),
+      model('tile', 'flux', 'controlnet'),
+    ];
+
+    expect(resolveDefaultControlModel(models, 'flux', 'controlnet')).toBe('FLUX Union Pro 2.0');
+  });
+
   it('prefers a union model, then tile, then the first compatible', () => {
     const canny = model('canny', 'sdxl', 'controlnet');
     const tile = { ...model('tile-model', 'sdxl', 'controlnet'), name: 'ControlNet Tile' } as ModelConfig;

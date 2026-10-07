@@ -344,6 +344,21 @@
           "signature": "(source: str | AnyHttpUrl, loader: Optional[Callable[[Path], AnyModel]] = None) -> LoadedModelWithoutConfig"
         },
         {
+          "description": "Ensure at least ``bytes_needed`` bytes are free in the model RAM cache.\nUnlocked least-recently-used model entries are evicted until the requested\nheadroom is available. This is useful before a RAM-streamed model phase where\nkeeping stale one-shot models cached can push the host into paging and make\nweight staging catastrophically slow.",
+          "name": "make_room_in_ram_cache",
+          "parameters": [
+            {
+              "default": "",
+              "description": "Number of free RAM-cache bytes to make available.",
+              "name": "bytes_needed",
+              "type": "int"
+            }
+          ],
+          "return_type": "None",
+          "returns": "",
+          "signature": "(bytes_needed: int) -> None"
+        },
+        {
           "description": "Offload unlocked cached models from VRAM until `vram_bytes_needed` bytes are free on this thread's\nexecution device.\nUse this before placing a model on the GPU *outside* the model cache (e.g. a BitsAndBytes-quantized model\nthat cannot be moved between devices). Loads that go through `load()` never need this - the cache makes room\nfor them itself when they are locked - but an out-of-cache load competes with the cached models for VRAM\nand would otherwise only get whatever they happened to leave free. The configured working-memory reserve\nis kept free on top of the request.",
           "name": "make_room_in_vram",
           "parameters": [

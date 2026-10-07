@@ -14,6 +14,7 @@ export {
   toGraphContract,
   toModelIdentifier,
 } from './core/graphBuilder';
+export { isAdapterBaseCompatible } from './core/architectureCapabilities';
 export { detectCanvasMode } from './core/canvas/canvasMode';
 export {
   type ControlAdapterKind,

@@ -19,6 +19,7 @@ import type {
   MainModelConfig,
 } from './types';
 
+import { isAdapterBaseCompatible } from './architectureCapabilities';
 import {
   coerceSchedulerForGraph,
   getExternalProviderNodeType,
@@ -38,6 +39,7 @@ import {
   isIdeogram4Qwen3VlEncoder,
   isKrea2Qwen3VlEncoder,
   isNonAnimaQwen3Encoder,
+  isSelfContainedChromaPipeline,
   isSelfContainedSDNQFlux1Pipeline,
   isVaeCompatibleWithGenerateModel,
   type GenerateComponentFilter,
@@ -161,7 +163,9 @@ const addFluxReduxReferenceImages = (
   model: MainModelConfig,
   denoise: BackendInvocationContract
 ) => {
-  const refs = getEnabledReferenceImages(settings, 'flux_redux').filter((ref) => ref.config.model?.base === model.base);
+  const refs = getEnabledReferenceImages(settings, 'flux_redux').filter(
+    (ref) => ref.config.model && isAdapterBaseCompatible(model.base, ref.config.model.base)
+  );
 
   if (refs.length === 0) {
     return;
@@ -678,6 +682,87 @@ const buildFluxGraph = (
     t5_encoder: t5EncoderModel ?? undefined,
     vae: vaeModel ?? undefined,
     ...(shouldUsePidDecode(settings, model.base) ? getPidMetadata(settings) : {}),
+  });
+  addReferenceImageMetadata(graph, output, settings);
+
+  return graph;
+};
+
+const buildChromaGraph = (
+  settings: GenerateSettings,
+  model: MainModelConfig,
+  outputIsIntermediate: boolean,
+  projectSettings: GenerationProjectSettings
+): BackendGraphContract => {
+  const graph: BackendGraphContract = { edges: [], id: createId('chroma_graph'), nodes: {} };
+  const { negativePrompt, positivePrompt, seed } = addPromptAndSeedNodes(graph);
+  const hasBundledComponents = isSelfContainedChromaPipeline(model);
+  // A picked encoder or VAE overrides what a complete pipeline bundles; the pipeline's own are used only when none is.
+  const t5EncoderModel = hasBundledComponents
+    ? settings.t5EncoderModel
+    : requireComponent(settings.t5EncoderModel, 'T5 Encoder');
+  const vaeModel = hasBundledComponents
+    ? getCompatibleVae(settings, model)
+    : requireComponent(getCompatibleVae(settings, model), 'FLUX VAE');
+  const scheduler = coerceSchedulerForGraph(model, settings.scheduler);
+  // Euler CFG++ steps on the difference of both branches, so it needs the negative prompt even at CFG 1.
+  const useNegative = settings.cfgScale > 1 || scheduler === 'euler_cfg_pp_beta';
+  const modelLoader = addNode(graph, {
+    id: 'model_loader',
+    model,
+    t5_encoder_model: t5EncoderModel ?? undefined,
+    type: 'chroma_model_loader',
+    vae_model: vaeModel ?? undefined,
+  });
+  const posCond = addNode(graph, { id: 'pos_cond', type: 'chroma_text_encoder' });
+  const posCondCollect = addNode(graph, { id: 'pos_cond_collect', type: 'collect' });
+  const negCond = useNegative ? addNode(graph, { id: 'neg_cond', type: 'chroma_text_encoder' }) : null;
+  const negCondCollect = useNegative ? addNode(graph, { id: 'neg_cond_collect', type: 'collect' }) : null;
+  const denoiseSize = getDenoiseSize(settings, model);
+  const denoise = addNode(graph, {
+    cfg_scale: settings.cfgScale,
+    denoising_end: 1,
+    denoising_start: 0,
+    height: denoiseSize.height,
+    id: 'denoise_latents',
+    num_steps: settings.steps,
+    scheduler,
+    type: 'chroma_denoise',
+    width: denoiseSize.width,
+  });
+  const output = addDecodeOutput({
+    denoise,
+    graph,
+    l2iType: 'flux_vae_decode',
+    model,
+    outputIsIntermediate,
+    positivePrompt,
+    seed,
+    settings,
+    vaeSource: modelLoader,
+  });
+
+  addEdge(graph, modelLoader, 'transformer', denoise, 'transformer');
+  // Only read when a ControlNet is attached; the backend ignores it otherwise.
+  addEdge(graph, modelLoader, 'vae', denoise, 'controlnet_vae');
+  addEdge(graph, modelLoader, 't5_encoder', posCond, 't5_encoder');
+  addEdge(graph, positivePrompt, 'value', posCond, 'prompt');
+  addEdge(graph, posCond, 'conditioning', posCondCollect, 'item');
+  addEdge(graph, posCondCollect, 'collection', denoise, 'positive_text_conditioning');
+
+  if (negCond && negCondCollect) {
+    addEdge(graph, modelLoader, 't5_encoder', negCond, 't5_encoder');
+    addEdge(graph, negativePrompt, 'value', negCond, 'prompt');
+    addEdge(graph, negCond, 'conditioning', negCondCollect, 'item');
+    addEdge(graph, negCondCollect, 'collection', denoise, 'negative_text_conditioning');
+  }
+
+  addEdge(graph, seed, 'value', denoise, 'seed');
+  addFluxReduxReferenceImages(graph, settings, model, denoise);
+  addMetadata(graph, output, settings, model, 'chroma_txt2img', projectSettings, {
+    scheduler,
+    t5_encoder: t5EncoderModel ?? undefined,
+    vae: vaeModel ?? undefined,
   });
   addReferenceImageMetadata(graph, output, settings);
 
@@ -1504,6 +1589,7 @@ export const GRAPH_BUILDERS = {
   'sd-3': buildSD3Graph,
   flux: buildFluxGraph,
   flux2: buildFlux2Graph,
+  chroma: buildChromaGraph,
   cogview4: buildCogView4Graph,
   'ernie-image': buildErnieImageGraph,
   'qwen-image': buildQwenImageGraph,

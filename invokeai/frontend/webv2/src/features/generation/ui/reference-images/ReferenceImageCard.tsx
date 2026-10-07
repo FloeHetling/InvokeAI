@@ -9,6 +9,7 @@ import type { CSSProperties } from 'react';
 
 import { Box, HStack, Icon, Stack, Text } from '@chakra-ui/react';
 import { FindInGalleryButton } from '@features/gallery/mediaSlot';
+import { isAdapterBaseCompatible } from '@features/generation/core/architectureCapabilities';
 import { getEffectiveReferenceImage } from '@features/generation/core/referenceImage';
 import { getReferenceImageUrls } from '@features/generation/data/referenceImageUrls';
 import { GenerationModelSelect as ModelSelect } from '@features/generation/ui/GenerationUiContext';
@@ -35,6 +36,7 @@ const THUMBNAIL_ACTIONS_CSS = {
 };
 
 const FLUX_MODEL_TYPES = ['ip_adapter', 'flux_redux'];
+const CHROMA_MODEL_TYPES = ['flux_redux'];
 const DEFAULT_MODEL_TYPES = ['ip_adapter'];
 const COVER_IMG_STYLE: CSSProperties = {
   height: '100%',
@@ -280,13 +282,17 @@ const ReferenceModelSelector = ({
   onConfigChange: (config: GenerateReferenceImageConfig) => void;
 }) => {
   const { t } = useTranslation();
-  const modelTypes = selectedBase === 'flux' ? FLUX_MODEL_TYPES : DEFAULT_MODEL_TYPES;
+  const modelTypes =
+    selectedBase === 'flux' ? FLUX_MODEL_TYPES : selectedBase === 'chroma' ? CHROMA_MODEL_TYPES : DEFAULT_MODEL_TYPES;
 
-  const filterModel = useCallback((model: ModelConfig) => model.base === selectedBase, [selectedBase]);
+  const filterModel = useCallback(
+    (model: ModelConfig) => Boolean(selectedBase) && isAdapterBaseCompatible(selectedBase as string, model.base),
+    [selectedBase]
+  );
 
   const selectReferenceModel = useCallback(
     (model: ModelConfig | null) => {
-      if (!model || model.base !== selectedBase) {
+      if (!model || !selectedBase || !isAdapterBaseCompatible(selectedBase, model.base)) {
         return;
       }
 

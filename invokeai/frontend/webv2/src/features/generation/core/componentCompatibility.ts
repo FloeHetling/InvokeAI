@@ -41,11 +41,22 @@ export const isSelfContainedSDNQPipeline = (model: GenerateComponentCandidate): 
 export const isSelfContainedSDNQFlux1Pipeline = (model: GenerateComponentCandidate): boolean =>
   hasSubmodels(model, SDNQ_FLUX1_COMPONENTS);
 
+const CHROMA_PIPELINE_COMPONENTS = ['transformer', 'vae', 'text_encoder', 'tokenizer'] as const;
+
+/** A Diffusers Chroma pipeline that carries its own T5-XXL encoder, tokenizer and VAE; a loose transformer does not. */
+export const isSelfContainedChromaPipeline = (model: GenerateComponentCandidate): boolean =>
+  model.base === 'chroma' &&
+  model.format === 'diffusers' &&
+  CHROMA_PIPELINE_COMPONENTS.every((submodel) => Boolean(model.submodels?.[submodel]));
+
 export const isBundledMainForBase =
   (base: string): GenerateComponentFilter =>
   (model) => {
     if (model.type !== 'main' || model.base !== base) {
       return false;
+    }
+    if (base === 'chroma') {
+      return isSelfContainedChromaPipeline(model);
     }
     if (model.format === 'diffusers') {
       return true;

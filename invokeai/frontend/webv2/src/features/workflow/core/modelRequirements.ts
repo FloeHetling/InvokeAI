@@ -31,6 +31,7 @@ export interface WorkflowModelRequirementSet {
 const BASE_LABELS: Record<string, string> = {
   any: 'Any',
   anima: 'Anima',
+  chroma: 'Chroma',
   cogview4: 'CogView4',
   'ernie-image': 'ERNIE-Image',
   external: 'External',

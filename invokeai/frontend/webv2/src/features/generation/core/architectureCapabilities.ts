@@ -24,6 +24,8 @@ export interface ArchitectureCapabilitiesRow {
     scheduler_set: SchedulerSetId | null;
     scheduler_applies_to_graph: boolean;
     control_kinds: string[];
+    /** Bases whose ControlNet and Redux adapters are also accepted, beside the architecture's own. */
+    adapter_bases: string[];
     max_reference_images: number;
     reference_images_require_variant: string | null;
     supports_regional_guidance: boolean;
@@ -181,3 +183,7 @@ export const getArchitectureFeatures = (
   base: string,
   variant?: unknown
 ): ArchitectureCapabilitiesRow['features'] | undefined => getArchitectureCapabilityRow(base, variant)?.features;
+
+/** Whether an adapter (ControlNet, Redux) of `adapterBase` may drive a main model of `mainBase`: its own base, or one it declares. */
+export const isAdapterBaseCompatible = (mainBase: string, adapterBase: string): boolean =>
+  adapterBase === mainBase || (getArchitectureFeatures(mainBase)?.adapter_bases ?? []).includes(adapterBase);

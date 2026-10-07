@@ -8,13 +8,28 @@ class ControlNetFluxOutput:
     single_block_residuals: list[torch.Tensor] | None
     double_block_residuals: list[torch.Tensor] | None
 
-    def apply_weight(self, weight: float):
-        if self.single_block_residuals is not None:
-            for i in range(len(self.single_block_residuals)):
-                self.single_block_residuals[i] = self.single_block_residuals[i] * weight
-        if self.double_block_residuals is not None:
-            for i in range(len(self.double_block_residuals)):
-                self.double_block_residuals[i] = self.double_block_residuals[i] * weight
+    def apply_weight(self, weight: float) -> None:
+        # InstantX expands a smaller set of ControlNet outputs to FLUX's 19 double +
+        # 38 single block layout by repeating references. Weight each unique tensor only
+        # once, then preserve that aliasing instead of materializing dozens of copies.
+        if weight == 1.0:
+            return
+
+        weighted_by_source_id: dict[int, torch.Tensor] = {}
+
+        def apply_to_list(residuals: list[torch.Tensor] | None) -> None:
+            if residuals is None:
+                return
+            for index, residual in enumerate(residuals):
+                source_id = id(residual)
+                weighted = weighted_by_source_id.get(source_id)
+                if weighted is None:
+                    weighted = residual * weight
+                    weighted_by_source_id[source_id] = weighted
+                residuals[index] = weighted
+
+        apply_to_list(self.single_block_residuals)
+        apply_to_list(self.double_block_residuals)
 
 
 def add_tensor_lists_elementwise(

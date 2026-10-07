@@ -77,6 +77,7 @@ from invokeai.backend.model_manager.configs.ltx2_duration_head import LTX2Durati
 from invokeai.backend.model_manager.configs.main import (
     Main_BnBNF4_FLUX_Config,
     Main_Checkpoint_Anima_Config,
+    Main_Checkpoint_Chroma_Config,
     Main_Checkpoint_ErnieImage_Config,
     Main_Checkpoint_Flux2_Config,
     Main_Checkpoint_FLUX_Config,
@@ -91,6 +92,7 @@ from invokeai.backend.model_manager.configs.main import (
     Main_Checkpoint_SDXLRefiner_Config,
     Main_Checkpoint_Wan_Config,
     Main_Checkpoint_ZImage_Config,
+    Main_Diffusers_Chroma_Config,
     Main_Diffusers_CogView4_Config,
     Main_Diffusers_ErnieImage_Config,
     Main_Diffusers_Flux2_Config,
@@ -158,6 +160,7 @@ from invokeai.backend.model_manager.configs.t2i_adapter import (
 )
 from invokeai.backend.model_manager.configs.t5_encoder import (
     T5Encoder_BnBLLMint8_Config,
+    T5Encoder_Checkpoint_Config,
     T5Encoder_GGUF_Config,
     T5Encoder_SDNQ_Config,
     T5Encoder_T5Encoder_Config,
@@ -391,6 +394,7 @@ AnyModelConfig = Annotated[
         Annotated[Main_Diffusers_SDXL_Config, Main_Diffusers_SDXL_Config.get_tag()],
         Annotated[Main_Diffusers_SDXLRefiner_Config, Main_Diffusers_SDXLRefiner_Config.get_tag()],
         Annotated[Main_Diffusers_SD3_Config, Main_Diffusers_SD3_Config.get_tag()],
+        Annotated[Main_Diffusers_Chroma_Config, Main_Diffusers_Chroma_Config.get_tag()],
         Annotated[Main_Diffusers_FLUX_Config, Main_Diffusers_FLUX_Config.get_tag()],
         Annotated[Main_Diffusers_Flux2_Config, Main_Diffusers_Flux2_Config.get_tag()],
         Annotated[Main_Diffusers_CogView4_Config, Main_Diffusers_CogView4_Config.get_tag()],
@@ -410,6 +414,7 @@ AnyModelConfig = Annotated[
         Annotated[Main_Checkpoint_SDXL_Config, Main_Checkpoint_SDXL_Config.get_tag()],
         Annotated[Main_Checkpoint_SDXLRefiner_Config, Main_Checkpoint_SDXLRefiner_Config.get_tag()],
         Annotated[Main_Checkpoint_Flux2_Config, Main_Checkpoint_Flux2_Config.get_tag()],
+        Annotated[Main_Checkpoint_Chroma_Config, Main_Checkpoint_Chroma_Config.get_tag()],
         Annotated[Main_Checkpoint_FLUX_Config, Main_Checkpoint_FLUX_Config.get_tag()],
         Annotated[Main_Checkpoint_QwenImage_Config, Main_Checkpoint_QwenImage_Config.get_tag()],
         Annotated[Main_Checkpoint_Wan_Config, Main_Checkpoint_Wan_Config.get_tag()],
@@ -522,6 +527,7 @@ AnyModelConfig = Annotated[
         Annotated[T5Encoder_BnBLLMint8_Config, T5Encoder_BnBLLMint8_Config.get_tag()],
         Annotated[T5Encoder_SDNQ_Config, T5Encoder_SDNQ_Config.get_tag()],
         Annotated[T5Encoder_GGUF_Config, T5Encoder_GGUF_Config.get_tag()],
+        Annotated[T5Encoder_Checkpoint_Config, T5Encoder_Checkpoint_Config.get_tag()],
         # Qwen3-VL Encoder (Qwen3-VL multimodal encoder for Krea-2) - checked BEFORE the text-only Qwen3
         # encoder so single-file VL checkpoints (which also carry generic model.layers.* keys) are not
         # misclassified as the Z-Image Qwen3 encoder. The VL probe requires the visual tower.

@@ -13,6 +13,7 @@ export type ModelBase =
   | 'sdxl-refiner'
   | 'flux'
   | 'flux2'
+  | 'chroma'
   | 'cogview4'
   | 'ernie-image'
   | 'qwen-image'

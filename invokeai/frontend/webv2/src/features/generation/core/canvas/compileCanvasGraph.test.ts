@@ -35,6 +35,15 @@ const flux2DevModel: MainModelConfig = {
   name: 'FLUX.2 [dev]',
   variant: 'dev',
 };
+// A complete Diffusers pipeline brings its own T5-XXL encoder and VAE.
+const chromaModel: MainModelConfig = {
+  base: 'chroma',
+  format: 'diffusers',
+  key: 'chroma-model',
+  name: 'Chroma1-HD',
+  submodels: { text_encoder: {}, tokenizer: {}, transformer: {}, vae: {} },
+  type: 'main',
+};
 const cogView4Model: MainModelConfig = { base: 'cogview4', key: 'cog-model', name: 'CogView4', type: 'main' };
 const qwenImageModel: MainModelConfig = {
   base: 'qwen-image',
@@ -227,6 +236,15 @@ const BASE_CASES: BaseCase[] = [
     denoiseType: 'flux2_denoise',
     txt2imgMode: 'flux2_txt2img',
     img2imgMode: 'flux2_img2img',
+    optimizedDenoising: true,
+  },
+  {
+    model: chromaModel,
+    encodeType: 'flux_vae_encode',
+    outputType: 'flux_vae_decode',
+    denoiseType: 'chroma_denoise',
+    txt2imgMode: 'chroma_txt2img',
+    img2imgMode: 'chroma_img2img',
     optimizedDenoising: true,
   },
   {
@@ -917,6 +935,55 @@ describe('compileCanvasGraph — control layers (integration)', () => {
       field: 'control',
       node_id: 'z_image_control_z-control',
     });
+  });
+});
+
+describe('compileCanvasGraph — Chroma ControlNet', () => {
+  const layer: ControlLayerGraphInput = {
+    beginEndStepPct: [0, 1],
+    controlMode: null,
+    id: 'chroma-control',
+    imageName: 'chroma-control.png',
+    kind: 'controlnet',
+    model: { base: 'flux', key: 'flux-union', name: 'FLUX Union', type: 'controlnet' },
+    weight: 0.35,
+  };
+
+  it('grafts a FLUX ControlNet into the Chroma graph', () => {
+    const { backendGraph } = compile(chromaModel, 'txt2img', { controlLayers: [layer] });
+
+    expect(backendGraph.nodes['control_net_chroma-control']).toMatchObject({
+      control_model: layer.model,
+      control_weight: 0.35,
+      type: 'flux_controlnet',
+    });
+    expect(getEdge(backendGraph, 'denoise_latents', 'control')).toBeDefined();
+  });
+
+  it('refuses to combine a Chroma ControlNet with Redux reference images', () => {
+    const redux = {
+      config: {
+        image: { original: { image: { height: 64, image_name: 'ref.png', width: 64 } } },
+        imageInfluence: 'high',
+        model: { base: 'flux', key: 'flux-redux', name: 'FLUX Redux', type: 'flux_redux' },
+        type: 'flux_redux',
+      },
+      id: 'redux',
+      isEnabled: true,
+    } as const;
+
+    expect(() =>
+      compile(chromaModel, 'txt2img', { controlLayers: [layer], settings: { referenceImages: [redux] } })
+    ).toThrow('Chroma ControlNet cannot be combined with Redux reference images.');
+  });
+
+  it('refuses a scheduler the Chroma ControlNet loop does not drive', () => {
+    expect(() => compile(chromaModel, 'txt2img', { controlLayers: [layer], settings: { scheduler: 'heun' } })).toThrow(
+      'Chroma ControlNet supports only the Euler and Euler CFG++ (Beta) schedulers.'
+    );
+    expect(() =>
+      compile(chromaModel, 'txt2img', { controlLayers: [layer], settings: { scheduler: 'euler_cfg_pp_beta' } })
+    ).not.toThrow();
   });
 });
 

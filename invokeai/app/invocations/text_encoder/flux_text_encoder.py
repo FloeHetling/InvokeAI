@@ -92,7 +92,7 @@ class FluxTextEncoderInvocation(BaseInvocation):
             # Determine if the model is quantized.
             # If the model is quantized, then we need to apply the LoRA weights as sidecar layers. This results in
             # slower inference than direct patching, but is agnostic to the quantization format.
-            if t5_encoder_config.format in [ModelFormat.T5Encoder, ModelFormat.Diffusers]:
+            if t5_encoder_config.format in [ModelFormat.T5Encoder, ModelFormat.Diffusers, ModelFormat.Checkpoint]:
                 model_is_quantized = False
             elif t5_encoder_config.format in [
                 ModelFormat.BnbQuantizedLlmInt8b,

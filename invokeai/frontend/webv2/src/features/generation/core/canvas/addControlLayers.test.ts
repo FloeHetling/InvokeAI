@@ -159,6 +159,24 @@ describe('addControlLayers — controlnet on sd-1', () => {
   });
 });
 
+describe('addControlLayers — controlnet on chroma', () => {
+  it('drives a FLUX ControlNet with flux_controlnet and no control_mode', () => {
+    const graph = run({
+      base: 'chroma',
+      layers: [layer({ id: 'C1', kind: 'controlnet', model: model('flux'), controlMode: 'more_prompt' })],
+    });
+
+    expect(graph.nodes['control_net_C1'].type).toBe('flux_controlnet');
+    expect(graph.nodes['control_net_C1']).not.toHaveProperty('control_mode');
+  });
+
+  it('rejects an adapter of a base Chroma does not borrow from', () => {
+    expect(() => run({ base: 'chroma', layers: [layer({ id: 'C2', model: model('sdxl') })] })).toThrow(
+      'incompatible_base'
+    );
+  });
+});
+
 describe('addControlLayers — controlnet on flux', () => {
   it('uses flux_controlnet type and omits control_mode entirely', () => {
     const m = model('flux');

@@ -1,6 +1,7 @@
 import {
   getArchitectureFeatures,
   hasArchitectureCapabilities,
+  isAdapterBaseCompatible,
 } from '@features/generation/core/architectureCapabilities';
 
 export type ControlAdapterKind = 'controlnet' | 't2i_adapter' | 'control_lora' | 'z_image_control';
@@ -53,7 +54,7 @@ export const getControlValidationReason = (params: {
   if (!isControlKindSupportedForBase(mainBase, kind)) {
     return 'unsupported_adapter';
   }
-  if (adapterModel.base !== mainBase) {
+  if (!isAdapterBaseCompatible(mainBase, adapterModel.base)) {
     return 'incompatible_base';
   }
   const expectedModelType = kind === 'z_image_control' ? 'controlnet' : kind;
