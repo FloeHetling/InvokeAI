@@ -288,12 +288,43 @@ export const getWildcardNameError = (
   return null;
 };
 
+const MARKDOWN_HEADING_HASHES_RE = /^#{1,6}(?=[ \t]+\S)/;
+
 /**
- * # is expansion syntax because the backend strips comments without an escape, even without other dynamic syntax. A
- * JSON prompt is never expanded: its braces are data.
+ * Length of the Markdown heading marker (`#` to `######`) that starts at `index`, or 0. A marker opens its line and is
+ * followed by text; the backend keeps it as literal prompt text instead of reading it as a comment.
+ */
+export const getMarkdownHeadingMarkerLength = (prompt: string, index: number): number => {
+  const lineStart = prompt.lastIndexOf('\n', index - 1) + 1;
+
+  if (!/^[ \t]*$/.test(prompt.slice(lineStart, index))) {
+    return 0;
+  }
+
+  return MARKDOWN_HEADING_HASHES_RE.exec(prompt.slice(index))?.[0].length ?? 0;
+};
+
+/** Index of the first `#` that starts a comment rather than a Markdown heading, or -1. */
+const findCommentHash = (prompt: string): number => {
+  for (let index = prompt.indexOf('#'); index !== -1; index = prompt.indexOf('#', index + 1)) {
+    const headingLength = getMarkdownHeadingMarkerLength(prompt, index);
+
+    if (headingLength === 0) {
+      return index;
+    }
+
+    index += headingLength - 1;
+  }
+
+  return -1;
+};
+
+/**
+ * A comment # is expansion syntax because the backend strips comments without an escape, even without other dynamic
+ * syntax. A JSON prompt is never expanded: its braces are data.
  */
 export const hasDynamicPromptSyntax = (prompt: string): boolean =>
-  (/\{[\s\S]*\}/.test(prompt) || prompt.includes('#') || scanWildcardReferences(prompt).length > 0) &&
+  (/\{[\s\S]*\}/.test(prompt) || findCommentHash(prompt) !== -1 || scanWildcardReferences(prompt).length > 0) &&
   !isJsonPrompt(prompt);
 
 /** Whether Invoke sends the prompt through the backend's expansion: dynamic prompts are on and it has their syntax. */
@@ -346,7 +377,7 @@ export const findDynamicPromptComment = (prompt: string): PromptCommentMarker | 
   }
 
   const candidates: [PromptCommentMarker, number][] = [
-    ['#', prompt.indexOf('#')],
+    ['#', findCommentHash(prompt)],
     ['//', prompt.indexOf('//')],
     ['/*', prompt.search(BLOCK_COMMENT_RE)],
   ];

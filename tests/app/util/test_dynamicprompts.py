@@ -4,7 +4,7 @@ import pytest
 from dynamicprompts.generators import CombinatorialPromptGenerator
 from dynamicprompts.wildcards import WildcardManager
 
-from invokeai.app.util.dynamicprompts import find_missing_wildcards
+from invokeai.app.util.dynamicprompts import expand_dynamic_prompt, find_missing_wildcards
 
 
 @pytest.fixture
@@ -67,3 +67,30 @@ def test_resolvable_wildcard_in_a_variant_generates_instead_of_hanging(
     generated = CombinatorialPromptGenerator(wildcard_manager).generate("{__colors__|x}", max_prompts=5)
 
     assert sorted(generated) == ["blue", "green", "red", "x"]
+
+
+HEADED_PROMPT = "by X\n\n# artstyle:\nfurry, {red|blue}\n\n  ## medium:\nfilm grain # note"
+
+
+def test_expand_dynamic_prompt_keeps_markdown_headings_and_drops_inline_comments() -> None:
+    expanded = expand_dynamic_prompt(HEADED_PROMPT, max_prompts=10, combinatorial=True)
+
+    assert expanded.prompts == [
+        "by X\n\n# artstyle:\nfurry, red\n\n  ## medium:\nfilm grain ",
+        "by X\n\n# artstyle:\nfurry, blue\n\n  ## medium:\nfilm grain ",
+    ]
+
+
+def test_expand_dynamic_prompt_keeps_headings_when_the_prompt_has_no_other_syntax() -> None:
+    prompt = "# artstyle:\nfurry\n\n#tag is still a comment"
+
+    assert expand_dynamic_prompt(prompt, max_prompts=1, combinatorial=False, seed=1).prompts == [
+        "# artstyle:\nfurry\n\n"
+    ]
+
+
+def test_expand_dynamic_prompt_returns_the_original_prompt_on_error() -> None:
+    expanded = expand_dynamic_prompt("# heading\n__nope__", max_prompts=1, combinatorial=True)
+
+    assert expanded.prompts == ["# heading\n__nope__"]
+    assert expanded.error is not None
