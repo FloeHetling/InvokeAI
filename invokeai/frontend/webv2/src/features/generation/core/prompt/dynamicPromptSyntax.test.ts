@@ -191,6 +191,19 @@ describe('scanDynamicPromptSyntax', () => {
     expect(annotate('a \\# b')).toEqual([['comment', '# b']]);
   });
 
+  it('leaves a Markdown heading undimmed but dims a comment after it', () => {
+    expect(annotate('# artstyle:\n  ## medium: {red|blue}')).toEqual([
+      ['variantBrace', '{'],
+      ['variantSeparator', '|'],
+      ['variantBrace', '}'],
+    ]);
+    expect(annotate('# artstyle: # note')).toEqual([['comment', '# note']]);
+    expect(annotate('a # b\n#tag')).toEqual([
+      ['comment', '# b'],
+      ['comment', '#tag'],
+    ]);
+  });
+
   it('ends a comment at the newline', () => {
     expect(annotate('a # note\n{red|green}')).toEqual([
       ['comment', '# note'],

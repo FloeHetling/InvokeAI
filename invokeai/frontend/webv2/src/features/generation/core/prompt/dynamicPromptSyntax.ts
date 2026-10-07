@@ -1,4 +1,8 @@
-import { matchesKnownWildcard, scanWildcardReferences } from '@features/generation/core/dynamicPrompts';
+import {
+  getMarkdownHeadingMarkerLength,
+  matchesKnownWildcard,
+  scanWildcardReferences,
+} from '@features/generation/core/dynamicPrompts';
 
 import type { PromptRange } from './ast';
 
@@ -87,6 +91,13 @@ export const scanDynamicPromptSyntax = (
     const char = prompt[index];
 
     if (char === '#') {
+      const headingLength = getMarkdownHeadingMarkerLength(prompt, index);
+
+      if (headingLength > 0) {
+        index += headingLength;
+        continue;
+      }
+
       const lineEnd = prompt.indexOf('\n', index);
       const end = lineEnd === -1 ? prompt.length : lineEnd;
 
