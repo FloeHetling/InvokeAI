@@ -20,6 +20,7 @@ vi.mock('./DefaultSettingsSection', () => ({ DefaultSettingsSection: section('de
 vi.mock('./RelatedModelsSection', () => ({ RelatedModelsSection: section('related-models') }));
 vi.mock('./TriggerPhrasesEditor', () => ({ MemoizedTriggerPhrasesEditor: section('trigger-phrases') }));
 vi.mock('./WorkingMemorySection', () => ({ WorkingMemorySection: section('working-memory') }));
+vi.mock('@features/cliptags/react', () => ({ ClipTagModelSettings: section('clip-tags') }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -82,6 +83,6 @@ describe('ModelDetail', () => {
     );
 
     const order = [...host.querySelectorAll('[data-section]')].map((element) => element.getAttribute('data-section'));
-    expect(order).toEqual(['default-settings', 'related-models', 'trigger-phrases', 'working-memory']);
+    expect(order).toEqual(['default-settings', 'related-models', 'trigger-phrases', 'clip-tags', 'working-memory']);
   });
 });

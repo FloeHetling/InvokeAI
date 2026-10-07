@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from invokeai.app.services.boards.boards_base import BoardServiceABC
     from invokeai.app.services.bulk_download.bulk_download_base import BulkDownloadBase
     from invokeai.app.services.client_state_persistence.client_state_persistence_base import ClientStatePersistenceABC
+    from invokeai.app.services.clip_tag_autocomplete.clip_tag_autocomplete_service import ClipTagAutocompleteService
     from invokeai.app.services.config import InvokeAIAppConfig
     from invokeai.app.services.download import DownloadQueueServiceBase
     from invokeai.app.services.events.events_base import EventServiceBase
@@ -122,6 +123,7 @@ class InvocationServices:
         gallery_maintenance: "GalleryMaintenanceService | None" = None,
         working_memory_calibration: "WorkingMemoryCalibrationServiceBase | None" = None,
         board_access: "BoardAccessService | None" = None,
+        clip_tag_autocomplete: "ClipTagAutocompleteService | None" = None,
     ):
         self.board_images = board_images
         self.board_image_records = board_image_records
@@ -144,6 +146,7 @@ class InvocationServices:
         self.performance_statistics = performance_statistics
         self.session_queue = session_queue
         self.image_moves = image_moves
+        self.clip_tag_autocomplete = clip_tag_autocomplete
         # Pure in-memory state with no dependencies, so callers (including the many test
         # constructors) may leave it out.
         self.progress_previews: "ProgressPreviewsBase" = (

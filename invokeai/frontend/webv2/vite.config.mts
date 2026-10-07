@@ -33,6 +33,10 @@ const readAppVersion = (): string => {
 
 // Group eager dependencies shared by both routes to avoid extra chunk requests.
 const ROUTE_SHARED_MODULES = [
+  '/features/cliptags/contracts.ts',
+  '/features/cliptags/core/prompt.ts',
+  '/features/cliptags/core/types.ts',
+  '/features/cliptags/launchpad.tsx',
   '/features/fonts/data/keys.ts',
   // Launchpad entry points and the intermediates settings metadata both read it.
   '/features/intermediates/data/focus.ts',
@@ -61,6 +65,18 @@ const ROUTE_SHARED_MODULES = [
   // alone they cost the editor a boot request, and the editor boot chunk would drag the editor into the Launchpad.
   '/platform/ui/Slider.tsx',
   '/platform/ui/SliderNumberField.tsx',
+  '/platform/ui/PageShell.tsx',
+  '/platform/ui/RenameDialog.tsx',
+  '/platform/ui/Menu.tsx',
+  '/platform/ui/widgetOverlayRegistry.ts',
+  '/platform/ui/widgetOverlays.ts',
+  '/platform/ui/toaster.tsx',
+  '/platform/ui/Field.tsx',
+  '/platform/ui/hints/FeatureHint.tsx',
+  '/platform/ui/hints/hintRegistry.ts',
+  '/platform/ui/hints/hintsContext.tsx',
+  '/platform/ui/hints/index.ts',
+  '/platform/ui/Tabs.tsx',
   '/platform/ui/Tooltip.tsx',
   '/platform/ui/RetryBoundary.tsx',
   '/platform/ui/PanelHeader.tsx',

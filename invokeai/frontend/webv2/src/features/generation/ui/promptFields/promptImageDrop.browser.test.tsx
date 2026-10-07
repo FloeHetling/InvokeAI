@@ -26,6 +26,7 @@ vi.mock('@features/generation/ui/GenerationUiContext', async (importOriginal) =>
   // Mock the context-bearing component and hook together to avoid unmatched module instances.
   GenerationModelSelect: stubs.ModelSelect,
   useGenerationUi: () => ({
+    clipTags: { enabled: false, hotPrefix: '~' },
     capabilities: { canManagePromptTemplates: false, canManageSharedSystemPrompts: false },
     gallery: { selectedImage: stubs.selectedImage },
     models: {

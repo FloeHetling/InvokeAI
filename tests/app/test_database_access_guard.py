@@ -25,6 +25,18 @@ DATABASE_LAYER = (
 
 # Code these rules flag that touches no application database: path -> why. Each entry must still be flagged.
 NOT_THE_APPLICATION_DATABASE = {
+    "invokeai/app/services/clip_tag_autocomplete/clip_tag_autocomplete_database.py": (
+        "owns the CLIP tag autocomplete SQLite sidecar, cta.db, not the application database"
+    ),
+    "invokeai/app/services/clip_tag_autocomplete/clip_tag_autocomplete_import.py": (
+        "imports into the CLIP tag autocomplete SQLite sidecar, cta.db, not the application database"
+    ),
+    "invokeai/app/services/clip_tag_autocomplete/clip_tag_autocomplete_service.py": (
+        "queries the CLIP tag autocomplete SQLite sidecar, cta.db, not the application database"
+    ),
+    "invokeai/app/services/clip_tag_autocomplete/migrations/cta_0001_initial.py": (
+        "defines the schema of the CLIP tag autocomplete SQLite sidecar, cta.db, not the application database"
+    ),
     "invokeai/app/services/gallery_maintenance/gallery_maintenance_default.py": (
         "keeps its scan inventory in a SQLite file of its own, in a temporary directory, not in the app's database"
     ),

@@ -10,6 +10,7 @@ import type {
   WorkflowLibrarySortId,
 } from '@workbench/settings/contracts';
 
+import { CLIP_TAG_HOT_PREFIXES } from '@features/cliptags/contracts';
 import { getUserStorageScope } from '@features/identity';
 import { normalizeWorkbenchLanguage } from '@platform/i18n/languages';
 import { isLogLevel, isLogNamespace, LOG_LEVELS, LOG_NAMESPACES } from '@platform/logging/contracts';
@@ -72,6 +73,8 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   notifyOnEnqueue: true,
   preferNumericAttentionStyle: false,
   promptFontSize: 'default',
+  clipTagAutocompleteEnabled: false,
+  clipTagAutocompleteHotPrefix: '~',
   queueJobsScope: 'all',
   reduceMotion: false,
   selectObjectAutoProcess: false,
@@ -396,6 +399,13 @@ export const normalizeWorkbenchPreferences = (preferences?: WorkbenchPreferences
   promptFontSize: isPromptFontSize(preferences?.promptFontSize)
     ? preferences.promptFontSize
     : DEFAULT_PREFERENCES.promptFontSize,
+  clipTagAutocompleteEnabled:
+    typeof preferences?.clipTagAutocompleteEnabled === 'boolean'
+      ? preferences.clipTagAutocompleteEnabled
+      : DEFAULT_PREFERENCES.clipTagAutocompleteEnabled,
+  clipTagAutocompleteHotPrefix:
+    CLIP_TAG_HOT_PREFIXES.find((prefix) => prefix === preferences?.clipTagAutocompleteHotPrefix) ??
+    DEFAULT_PREFERENCES.clipTagAutocompleteHotPrefix,
   queueJobsScope:
     preferences?.queueJobsScope === 'all-projects'
       ? 'all'
