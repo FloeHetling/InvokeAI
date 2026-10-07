@@ -215,6 +215,9 @@ class RegionalPromptingExtension:
     ) -> FluxRegionalTextConditioning:
         """Concatenate regional text conditioning data into a single conditioning tensor (with associated masks)."""
         concat_t5_embeddings: list[torch.Tensor] = []
+        concat_attention_masks: list[torch.Tensor] = []
+        # Only Chroma conditioning carries a per-token mask; FLUX builds none and so pays nothing for it.
+        has_attention_mask = any(tc.attention_mask is not None for tc in text_conditionings)
         concat_t5_embedding_ranges: list[Range] = []
         image_masks: list[torch.Tensor | None] = []
 
@@ -231,6 +234,16 @@ class RegionalPromptingExtension:
         cur_t5_embedding_len = 0
         for text_conditioning in text_conditionings:
             concat_t5_embeddings.append(text_conditioning.t5_embeddings)
+            if has_attention_mask:
+                concat_attention_masks.append(
+                    text_conditioning.attention_mask
+                    if text_conditioning.attention_mask is not None
+                    else torch.ones(
+                        text_conditioning.t5_embeddings.shape[:2],
+                        dtype=torch.bool,
+                        device=text_conditioning.t5_embeddings.device,
+                    )
+                )
             concat_t5_embedding_ranges.append(
                 Range(start=cur_t5_embedding_len, end=cur_t5_embedding_len + text_conditioning.t5_embeddings.shape[1])
             )
@@ -240,6 +253,14 @@ class RegionalPromptingExtension:
         # Handle Redux embeddings.
         for redux_conditioning in redux_conditionings:
             concat_t5_embeddings.append(redux_conditioning.redux_embeddings)
+            if has_attention_mask:
+                concat_attention_masks.append(
+                    torch.ones(
+                        redux_conditioning.redux_embeddings.shape[:2],
+                        dtype=torch.bool,
+                        device=redux_conditioning.redux_embeddings.device,
+                    )
+                )
             concat_t5_embedding_ranges.append(
                 Range(
                     start=cur_t5_embedding_len, end=cur_t5_embedding_len + redux_conditioning.redux_embeddings.shape[1]
@@ -249,6 +270,7 @@ class RegionalPromptingExtension:
             cur_t5_embedding_len += redux_conditioning.redux_embeddings.shape[1]
 
         t5_embeddings = torch.cat(concat_t5_embeddings, dim=1)
+        attention_mask = torch.cat(concat_attention_masks, dim=1) if has_attention_mask else None
 
         # Initialize the txt_ids tensor.
         pos_bs, pos_t5_seq_len, _ = t5_embeddings.shape
@@ -262,6 +284,7 @@ class RegionalPromptingExtension:
             t5_txt_ids=t5_txt_ids,
             image_masks=image_masks,
             t5_embedding_ranges=concat_t5_embedding_ranges,
+            attention_mask=attention_mask,
         )
 
     @staticmethod

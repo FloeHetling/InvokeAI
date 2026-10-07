@@ -1,0 +1,106 @@
+---
+title: Chroma
+description: Generate images with Chroma1-HD, including the single-file and Diffusers installs, the Euler CFG++ sampler, FLUX ControlNets and Redux reference images.
+lastUpdated: 2026-10-07
+sidebar:
+  order: 13
+---
+
+Chroma is an 8.9B-parameter text-to-image model derived from FLUX.1 [schnell], trained by lodestones. InvokeAI
+supports **Chroma1-HD**. It keeps FLUX's transformer layout but drops the distilled guidance network in favor of
+real classifier-free guidance, so unlike FLUX it has **one CFG slider and a negative prompt**. It reads prompts
+with a **T5-XXL** encoder of variable length (no CLIP) and decodes with the **FLUX.1 VAE**.
+
+Chroma works in the Generate tab, on the Canvas (text-to-image, image-to-image, inpainting and outpainting) and
+in the workflow editor.
+
+## License
+
+Chroma1-HD is released under **Apache 2.0**, which allows commercial use. This is a summary, not legal advice.
+Read the full license on the model's HuggingFace page before using a model commercially.
+
+## Installing
+
+Chroma needs three components:
+
+| Component             | Diffusers pipeline (`lodestones/Chroma1-HD`) | Single-file install                         |
+| --------------------- | -------------------------------------------- | ------------------------------------------- |
+| Transformer           | bundled                                      | the `Chroma1-HD.safetensors` file           |
+| T5-XXL text encoder   | bundled                                      | installed separately                        |
+| VAE (FLUX.1)          | bundled                                      | installed separately (any FLUX.1 VAE)       |
+
+- A **single-file** transformer is detected by its guidance network (`distilled_guidance_layer`), which FLUX
+  files lack. GGUF and NF4 files are not recognized as Chroma, and a file that carries quantization scales is
+  refused at load instead of being run with the wrong weights.
+- The **T5-XXL encoder** can be a Diffusers folder, a GGUF, an NF4 or int8 build, or a **raw
+  `t5xxl_*.safetensors` file** such as ComfyUI's `t5xxl_fp8_e4m3fn.safetensors`. A raw file needs no `config.json`
+  or tokenizer; InvokeAI supplies both. FLUX.1 can use the same raw encoder.
+- The **Components** section next to the model has a **T5 Encoder** and a **VAE** slot. Generate stays disabled
+  until both are filled, unless the model is a complete Diffusers pipeline. A pipeline's own encoder and VAE are
+  used until you pick others, and a picked one overrides them.
+
+## Generation settings
+
+| Setting     | Default | Notes                                                                          |
+| ----------- | ------- | ------------------------------------------------------------------------------ |
+| Steps       | 40      | the model card's value                                                         |
+| CFG Scale   | 3.0     | real CFG: the negative prompt applies whenever CFG is above 1, or with CFG++   |
+| Size        | 1024²   | width and height are multiples of 16                                           |
+| Scheduler   | Euler   | Euler, Euler CFG++ (Beta), Heun (2nd order) or LCM                             |
+
+**Euler CFG++ (Beta)** follows the ComfyUI sampler of the same name, with the beta sigma schedule
+(`Beta(0.6, 0.6)`, shift 1.15). It always uses the negative prompt, even at CFG 1.
+
+Prompts of any length are encoded without padding or truncation. `(text:1.3)`, `(text)1.3` and `(text)` weights are
+supported by moving the embedding away from an all-padding baseline. `(text)` is 1.1, a number replaces it, and the
+weights of nested groups multiply. The `+` and `-` shorthands are not read, so turn on **Prefer numeric attention
+style** in the preferences for the prompt hotkeys.
+
+## Reference images (FLUX Redux)
+
+Reference images use **FLUX Redux** models (the FLUX.1 Redux adapter works with Chroma). IP-Adapters,
+Kontext reference images and FLUX Fill are not supported.
+
+## ControlNet
+
+Chroma drives **FLUX.1 ControlNets** that use the InstantX architecture: `Shakker-Labs/FLUX.1-dev-ControlNet-Union-Pro-2.0`
+and `InstantX/FLUX.1-dev-Controlnet-Union`. They appear in the control layer's model list when a Chroma model is
+selected. XLabs ControlNets, Control LoRAs and IP-Adapters are refused.
+
+- **Use a low weight.** Union Pro 2.0 follows a pose well at about `0.35`. At `0.75`, the weight a new control
+  layer starts with, the same generation breaks up into texture. Lower the weight before the first generation.
+- Only the **Euler** and **Euler CFG++ (Beta)** schedulers run with a ControlNet.
+- A ControlNet cannot be combined with Redux reference images in one generation.
+- The control layer does not offer InstantX's mode picker, so the InstantX Union model runs without an explicit
+  mode. Prefer Union Pro 2.0, which infers the control type from the image. The layer's **Control mode** setting has
+  no effect on a FLUX ControlNet.
+- Residuals apply only to the positive branch. With CFG++ and a ControlNet, the positive and negative passes run
+  one after the other.
+
+### Memory and speed
+
+Chroma runs its transformer in FP16. On a 16 GB card the transformer is partly resident and streams the rest from
+system memory, and a ControlNet competes with it for VRAM. Two policies trade memory against speed:
+
+- **`phase_swap`** swaps the transformer and the ControlNet in and out of VRAM around each step. It is the
+  compatible default.
+- **`chroma_pinned`** keeps the transformer resident and streams the ControlNet instead. It is about 20% faster for
+  Union Pro 2.0 and is chosen automatically for that model only, when it was installed from its HuggingFace
+  repository (a copy installed from a URL or a local path keeps `phase_swap`). It is not safe for the larger InstantX Union
+  model on a 16 GB card.
+
+Set `INVOKEAI_CHROMA_CONTROLNET_RESIDENCY_POLICY` to `auto` (the default), `phase_swap` or `chroma_pinned` to
+override the choice. `INVOKEAI_CHROMA_RESIDENCY_PROFILE=1` logs a residency profile for ControlNet generations;
+it synchronizes the GPU and slows generation, so use it only to investigate memory.
+
+Chroma also honors the `sequential_guidance` setting in `invokeai.yaml`. It is switched on automatically when
+two simultaneous passes would not fit in VRAM, which is what keeps CFG++ usable on 16 GB.
+
+## Limits
+
+- No LoRAs, regional guidance, seamless tiling or PiD decoding.
+- The transformer runs its matrix multiplications with FP16 accumulation, a process-wide CUDA setting that is held
+  for the length of each Chroma forward pass. On a machine that generates on several GPUs at once, another model's
+  fp16 job running at the same time sees the setting too.
+- The Diffusers install must contain Chroma's own T5 and VAE to be treated as self-contained; a bare transformer
+  folder needs the encoder and VAE selected like a single file.

@@ -2,6 +2,11 @@ import type { ControlAdapterKind } from '@features/generation/graph';
 import type { ModelConfig } from '@features/models';
 import type { CanvasControlLayerContract, ControlType } from '@workbench/canvas-engine/api';
 
+import {
+  resetArchitectureCapabilities,
+  setArchitectureCapabilities,
+} from '@features/generation/core/architectureCapabilities';
+import { architectureCapabilitiesFixture } from '@features/generation/core/architectureCapabilities.testing';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -336,6 +341,18 @@ describe('resolveControlModel InstantX modes', () => {
       resolve(layer('depth'), 'flux', [model('flux-depth-lora', 'flux', 'control_lora')]).instantxControlMode
     ).toBeNull();
     expect(resolve(layer('depth'), 'z-image', [model('z-image-fun', 'z-image')]).instantxControlMode).toBeNull();
+  });
+
+  it('runs a FLUX union model on a Chroma layer, with its InstantX mode, once the capability rows are loaded', () => {
+    setArchitectureCapabilities(architectureCapabilitiesFixture);
+    try {
+      expect(resolve(layer('depth'), 'chroma', [fluxUnion, model('sdxl-depth', 'sdxl')])).toMatchObject({
+        instantxControlMode: 2,
+        model: fluxUnion,
+      });
+    } finally {
+      resetArchitectureCapabilities();
+    }
   });
 });
 

@@ -10,6 +10,7 @@ export const SUPPORTED_GENERATE_BASES = [
   'flux',
   'flux2',
   'flux3',
+  'chroma',
   'cogview4',
   'ernie-image',
   'qwen-image',

@@ -91,6 +91,11 @@ export const MODEL_BASES = {
     // A deeper sky blue: the next step on from FLUX.2's ice, as ice is from FLUX.1's teal.
     colorPalette: 'azure',
   },
+  chroma: {
+    base: 'chroma',
+    label: 'Chroma',
+    colorPalette: 'gray',
+  },
   cogview4: {
     base: 'cogview4',
     label: 'CogView4',

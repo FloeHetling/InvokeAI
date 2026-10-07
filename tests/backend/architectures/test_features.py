@@ -13,6 +13,7 @@ from invokeai.backend.model_manager.taxonomy import BaseModelType
 DENOISE_NODE = {
     BaseModelType.StableDiffusion3: "sd3_denoise",
     BaseModelType.CogView4: "cogview4_denoise",
+    BaseModelType.Chroma: "chroma_denoise",
     BaseModelType.Flux: "flux_denoise",
     BaseModelType.Flux2: "flux2_denoise",
     BaseModelType.Flux3: "flux3_denoise",
@@ -67,7 +68,7 @@ def test_the_sd_family_grid_is_the_vae_compression() -> None:
 @pytest.mark.parametrize(
     ("kind", "expected"),
     [
-        ("controlnet", {"sd-1", "sdxl", "flux"}),
+        ("controlnet", {"sd-1", "sdxl", "flux", "chroma"}),
         ("t2i_adapter", {"sd-1", "sdxl"}),
         ("control_lora", {"flux"}),
         ("z_image_control", {"z-image"}),
@@ -92,7 +93,18 @@ def test_reference_images_and_the_conditions_on_them() -> None:
     supported = {
         b.value for b in generative_bases() if (f := get(b, FeaturesFacet)) is not None and f.supports_reference_images
     }
-    assert supported == {"flux", "flux2", "flux3", "sd-1", "sdxl", "qwen-image", "krea-2", "anima", "qwen-image-2-1"}
+    assert supported == {
+        "flux",
+        "flux2",
+        "flux3",
+        "chroma",
+        "sd-1",
+        "sdxl",
+        "qwen-image",
+        "krea-2",
+        "anima",
+        "qwen-image-2-1",
+    }
 
     by_format = {
         b.value: f.reference_images_require_format
@@ -159,6 +171,7 @@ def test_the_negative_prompt_policy_follows_the_guidance_model() -> None:
     assert by_usage["cfg-gated"] == {
         "anima",
         "flux3",
+        "chroma",
         "krea-2",
         "qwen-image",
         "qwen-image-2-1",
@@ -245,3 +258,13 @@ def test_scheduler_applies_to_graph_matches_the_node() -> None:
                 f"facet declares scheduler_applies_to_graph = {features.scheduler_applies_to_graph}"
             )
     assert disagreements == []
+
+
+def test_only_chroma_accepts_another_bases_adapters() -> None:
+    """Chroma keeps FLUX.1's block layout, so FLUX.1 ControlNets and Redux drive it; nobody else borrows adapters."""
+    declared = {
+        b.value: sorted(a.value for a in f.adapter_bases)
+        for b in generative_bases()
+        if (f := get(b, FeaturesFacet)) is not None and f.adapter_bases
+    }
+    assert declared == {"chroma": ["flux"]}

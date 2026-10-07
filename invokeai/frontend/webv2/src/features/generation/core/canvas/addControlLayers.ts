@@ -155,7 +155,9 @@ export const getOrAddLliteCollector = (
 };
 
 /** Resolves the backend node type for a controlnet layer on `base`. */
-const controlNetNodeType = (base: string): string => (base === 'flux' ? 'flux_controlnet' : 'controlnet');
+const isFluxControlNetBase = (base: string): boolean => base === 'flux' || base === 'chroma';
+
+const controlNetNodeType = (base: string): string => (isFluxControlNetBase(base) ? 'flux_controlnet' : 'controlnet');
 
 /** Validate defensively through the shared policy before graph wiring. */
 export const addControlLayers = (graph: BackendGraphContract, options: AddControlLayersOptions): void => {
@@ -207,7 +209,7 @@ export const addControlLayers = (graph: BackendGraphContract, options: AddContro
         resize_mode: 'just_resize',
         type: controlNetNodeType(base),
         // FLUX ControlNet has no control_mode; SD-family carries it. A FLUX union model takes its InstantX mode.
-        ...(base === 'flux'
+        ...(isFluxControlNetBase(base)
           ? typeof layer.instantxControlMode === 'number'
             ? { instantx_control_mode: layer.instantxControlMode }
             : {}

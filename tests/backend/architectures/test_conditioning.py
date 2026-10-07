@@ -35,10 +35,10 @@ def test_the_shared_types_are_shared_by_identity() -> None:
             assert facet is not None and facet.info is info, base.value
 
 
-def test_seventeen_types_serve_twenty_architectures() -> None:
-    """Pins the sharing itself. An eighteenth type means a new architecture stopped sharing."""
-    assert len(conditioning_infos()) == 17
-    assert len(generative_bases()) == 20
+def test_eighteen_types_serve_twenty_one_architectures() -> None:
+    """Pins the sharing itself. A nineteenth type means a new architecture stopped sharing."""
+    assert len(conditioning_infos()) == 18
+    assert len(generative_bases()) == 21
 
 
 def test_the_list_is_deterministic() -> None:
@@ -115,12 +115,12 @@ def test_dependencies_imports_that_list_from_the_architecture_package() -> None:
 
 
 def test_the_assembled_list_holds_every_conditioning_class_exactly_once() -> None:
-    """The content of what the call site passes: the envelope first, then all seventeen classes."""
+    """The content of what the call site passes: the envelope first, then all eighteen classes."""
     safe_globals = conditioning_safe_globals()
 
     assert safe_globals[0] is ConditioningFieldData
     assert set(safe_globals[1:]) == set(conditioning_infos())
-    assert len(safe_globals) == 18
+    assert len(safe_globals) == 19
     assert len(set(safe_globals)) == len(safe_globals), "a class appears twice"
 
 
