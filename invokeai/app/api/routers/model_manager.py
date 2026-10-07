@@ -838,11 +838,19 @@ def delete_model(
         try:
             installer = ApiDependencies.invoker.services.model_manager.install
             installer.delete(key)
+            _cleanup_cta_model_config(key)
             logger.info(f"Deleted model: {key}")
             return Response(status_code=204)
         except UnknownModelException as e:
             logger.error(str(e))
             raise HTTPException(status_code=404, detail=str(e))
+
+
+def _cleanup_cta_model_config(key: str) -> None:
+    """Drops the clip-tag-autocomplete settings linked to a deleted model, so none are left behind."""
+    cta_service = ApiDependencies.invoker.services.clip_tag_autocomplete
+    if cta_service is not None:
+        cta_service.request_model_config_cleanup(key)
 
 
 class BulkDeleteModelsRequest(BaseModel):
@@ -902,6 +910,7 @@ def bulk_delete_models(
             # than aborting the whole request or racing the operation that holds it.
             with _claim_model_key(key):
                 installer.delete(key)
+            _cleanup_cta_model_config(key)
             deleted.append(key)
             logger.info(f"Deleted model: {key}")
         except HTTPException as e:
@@ -1497,6 +1506,7 @@ def _convert_model(key: str, user_id: str) -> AnyModelConfig:
 
             # Delete the original safetensors file.
             installer.delete(key)
+            _cleanup_cta_model_config(key)
 
             # Return the config record for the new diffusers directory.
             new_config = store.get_model(new_key)

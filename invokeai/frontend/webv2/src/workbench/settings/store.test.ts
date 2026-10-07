@@ -379,6 +379,27 @@ describe('normalizeWorkbenchPreferences prompt editing', () => {
   });
 });
 
+describe('normalizeWorkbenchPreferences CLIP tag autocomplete', () => {
+  it('is off, with the tilde prefix, unless stored otherwise', () => {
+    expect(store.normalizeWorkbenchPreferences({})).toMatchObject({
+      clipTagAutocompleteEnabled: false,
+      clipTagAutocompleteHotPrefix: '~',
+    });
+    expect(store.normalizeWorkbenchPreferences({ clipTagAutocompleteEnabled: 1 as never })).toMatchObject({
+      clipTagAutocompleteEnabled: false,
+    });
+    expect(
+      store.normalizeWorkbenchPreferences({ clipTagAutocompleteEnabled: true, clipTagAutocompleteHotPrefix: '*' })
+    ).toMatchObject({ clipTagAutocompleteEnabled: true, clipTagAutocompleteHotPrefix: '*' });
+  });
+
+  it('falls back to the tilde for a prefix that is not offered', () => {
+    expect(store.normalizeWorkbenchPreferences({ clipTagAutocompleteHotPrefix: '#' as never })).toMatchObject({
+      clipTagAutocompleteHotPrefix: '~',
+    });
+  });
+});
+
 describe('normalizeWorkbenchPreferences appearance', () => {
   it('keeps high contrast off unless explicitly enabled', () => {
     expect(store.normalizeWorkbenchPreferences({}).highContrast).toBe(false);

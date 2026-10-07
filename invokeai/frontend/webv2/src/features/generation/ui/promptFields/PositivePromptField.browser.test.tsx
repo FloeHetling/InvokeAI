@@ -17,6 +17,7 @@ await i18n.use(initReactI18next).init({ fallbackLng: 'en', lng: 'en', resources:
 vi.mock('@features/generation/ui/GenerationUiContext', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   useGenerationUi: () => ({
+    clipTags: { enabled: false, hotPrefix: '~' },
     capabilities: { canManagePromptTemplates: false, canManageSharedSystemPrompts: false },
     gallery: { selectedImage: null },
     models: { catalog: [], ensureLoaded: vi.fn() },

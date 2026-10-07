@@ -1,6 +1,8 @@
 import { useAuthSession, type AuthSession } from './session';
 
 export interface Capabilities {
+  /** Import tags and manage tag sets and syntax profiles for CLIP tag autocomplete; the routes are admin-only. */
+  canManageClipTags: boolean;
   /** Server-wide runtime config (e.g. which GPUs generate); `PATCH /app/runtime_config` is admin-only. */
   canManageAppConfig: boolean;
   /** The image map's supplementary cluster-label vocabulary; the PUT route is admin-only. */
@@ -21,6 +23,7 @@ export interface Capabilities {
 export const getCapabilities = (session: AuthSession): Capabilities => {
   if (session.phase !== 'ready') {
     return {
+      canManageClipTags: false,
       canManageAppConfig: false,
       canManageImageMapVocabulary: false,
       canManageModels: false,
@@ -37,6 +40,7 @@ export const getCapabilities = (session: AuthSession): Capabilities => {
   const isAdmin = isSingleUser || session.user?.is_admin === true;
 
   return {
+    canManageClipTags: isAdmin,
     canManageAppConfig: isAdmin,
     canManageImageMapVocabulary: isAdmin,
     canManageModels: isAdmin,

@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AboutSettings } from './AboutSettings';
 import { clearWorkspaceData, rememberWorkspaceClearFailure } from './clearWorkspaceData';
+import { ClipTagSettings } from './ClipTagSettings';
 import { GenerationDevicesSettings } from './GenerationDevicesSettings';
 import { HotkeysSettingsSection } from './HotkeysSettingsSection';
 import { ImageMapVocabularySettings } from './ImageMapVocabularySettings';
@@ -291,6 +292,9 @@ const CustomSettingField = ({ field, onReveal }: SettingFieldProps) => {
       break;
     case 'about':
       editor = <AboutSettings />;
+      break;
+    case 'clipTagManager':
+      editor = <ClipTagSettings />;
       break;
     case 'generationDevices':
       editor = <GenerationDevicesSettings />;

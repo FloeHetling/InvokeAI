@@ -106,7 +106,8 @@ export const NegativePromptField = ({
 
   const handlePromptKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.altKey || event.ctrlKey || event.metaKey) {
+      // Alt+Arrow moves between tag categories while the tag suggestions are open; every other modified key is not ours.
+      if (event.ctrlKey || event.metaKey || (event.altKey && !autocomplete.isOpen)) {
         return;
       }
 

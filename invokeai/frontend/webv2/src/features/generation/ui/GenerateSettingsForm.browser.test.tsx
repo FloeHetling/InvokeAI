@@ -116,6 +116,7 @@ const createStableGroups = () => ({
   CanvasGenerationSections: () => null,
   account: { currentUserId: null, multiuserEnabled: false },
   capabilities: { canManagePromptTemplates: false, canManageSharedSystemPrompts: false },
+  clipTags: { enabled: false, hotPrefix: '~' as const },
   gallery: { findImage: noop, selectedImage: null, touchImages: noop },
   models: {
     ModelSelect: () => null,

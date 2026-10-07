@@ -3,6 +3,7 @@ import type { ModelConfig } from '@features/models/core/types';
 import type { ReactNode } from 'react';
 
 import { chakra, DataList, HStack, Icon, Menu, Portal, Separator, Stack, Text } from '@chakra-ui/react';
+import { ClipTagModelSettings } from '@features/cliptags/react';
 import { isConvertibleToDiffusers } from '@features/models/core/baseIdentity';
 import { isLinkableType } from '@features/models/core/relationships';
 import { isAbsoluteModelPath, resolveModelAbsolutePath } from '@features/models/core/schemas';
@@ -184,6 +185,13 @@ export const ModelDetail = ({
         <>
           <Separator borderColor="border.subtle" />
           <TriggerPhrasesEditorContainer modelKey={model.key} />
+        </>
+      ) : null}
+
+      {model.type === 'main' ? (
+        <>
+          <Separator borderColor="border.subtle" />
+          <ClipTagModelSettings modelKey={model.key} />
         </>
       ) : null}
     </Stack>

@@ -15,6 +15,7 @@ export const FEATURE_PUBLIC_INTERFACES: Readonly<Record<string, readonly string[
     'utility',
     'widget',
   ],
+  cliptags: ['contracts', 'launchpad', 'react'],
   fonts: ['contracts', 'launchpad', 'react', 'runtime'],
   generation: [
     'canvasGraph',

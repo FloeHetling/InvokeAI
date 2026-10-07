@@ -55,3 +55,35 @@ def test_initialize_does_not_vacuum_database(monkeypatch, tmp_path) -> None:
             else:
                 ApiDependencies.invoker = original_invoker
         loop.close()
+
+
+def _cta_config(tmp_path) -> InvokeAIAppConfig:
+    config = InvokeAIAppConfig()
+    config.db_dir = tmp_path
+    config.use_memory_db = False
+    return config
+
+
+def test_startup_drops_clip_tag_settings_only_of_models_the_registry_does_not_know(tmp_path) -> None:
+    logger = getLogger("test_cta_startup")
+    first = ApiDependencies._start_clip_tag_autocomplete(_cta_config(tmp_path), logger, MagicMock())
+    assert first is not None
+    profile = first.create_syntax_profile("Plain")
+    first.set_model_config("kept", syntax_profile_id=profile.id)
+    first.set_model_config("gone", syntax_profile_id=profile.id)
+
+    registry = MagicMock()
+    registry.exists.side_effect = lambda key: key == "kept"
+    restarted = ApiDependencies._start_clip_tag_autocomplete(_cta_config(tmp_path), logger, registry)
+
+    assert restarted is not None
+    assert restarted.get_configured_model_ids() == {"kept"}
+
+
+def test_startup_continues_without_clip_tag_autocomplete_when_it_cannot_start(monkeypatch, tmp_path) -> None:
+    def fail(*_args, **_kwargs):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(dependencies.CtaDatabase, "initialize", fail)
+
+    assert ApiDependencies._start_clip_tag_autocomplete(_cta_config(tmp_path), getLogger("test"), MagicMock()) is None

@@ -103,6 +103,7 @@ vi.mock('@features/generation/ui/GenerationUiContext', async (importOriginal) =>
     />
   ),
   useGenerationUi: () => ({
+    clipTags: { enabled: false, hotPrefix: '~' },
     account: { isAdmin: false, userId: 'system' },
     capabilities: { canManagePromptTemplates: false, canManageSharedSystemPrompts: false },
     gallery: { selectedImage: { imageName: 'selected.png' } },

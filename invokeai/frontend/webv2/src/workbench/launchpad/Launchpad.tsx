@@ -1,4 +1,5 @@
 import { Box, Flex, VisuallyHidden, type SystemStyleObject } from '@chakra-ui/react';
+import { ClipTagsPage } from '@features/cliptags/launchpad';
 import { FontsPage } from '@features/fonts/launchpad';
 import { useCapabilities, UsersPage } from '@features/identity';
 import { INTERMEDIATES_SETTING_ID, requestIntermediatesFocus } from '@features/intermediates';
@@ -13,6 +14,7 @@ import {
   FolderIcon,
   HouseIcon,
   SettingsIcon,
+  TagsIcon,
   TypeIcon,
   UsersIcon,
   type LucideIcon,
@@ -31,7 +33,7 @@ import { ProjectActionsMenuProvider } from './projects/ProjectActionsMenuHost';
  * across the route split.
  */
 
-type LaunchpadSectionId = 'home' | 'projects' | 'models' | 'nodes' | 'users' | 'fonts' | 'preferences';
+type LaunchpadSectionId = 'home' | 'projects' | 'models' | 'nodes' | 'users' | 'cliptags' | 'fonts' | 'preferences';
 
 interface LaunchpadSection {
   id: LaunchpadSectionId;
@@ -43,7 +45,16 @@ interface LaunchpadSection {
 }
 
 const DEFAULT_SECTION_ID: LaunchpadSectionId = 'home';
-const SECTION_IDS: readonly string[] = ['home', 'projects', 'models', 'nodes', 'users', 'fonts', 'preferences'];
+const SECTION_IDS: readonly string[] = [
+  'home',
+  'projects',
+  'models',
+  'nodes',
+  'users',
+  'cliptags',
+  'fonts',
+  'preferences',
+];
 
 const isSectionId = (value: string): value is LaunchpadSectionId => SECTION_IDS.includes(value);
 
@@ -60,8 +71,9 @@ const normalizeSectionId = (value: string): LaunchpadSectionId | null => {
 
 const SECTION_PATHS: Record<
   LaunchpadSectionId,
-  '/' | '/projects' | '/models' | '/nodes' | '/users' | '/fonts' | '/preferences'
+  '/' | '/projects' | '/models' | '/nodes' | '/users' | '/cliptags' | '/fonts' | '/preferences'
 > = {
+  cliptags: '/cliptags',
   fonts: '/fonts',
   home: '/',
   models: '/models',
@@ -89,7 +101,7 @@ const getActiveSectionId = (
     : DEFAULT_SECTION_ID;
 
 export const Launchpad = () => {
-  const { canManageModels, canManageNodes, canManageUsers } = useCapabilities();
+  const { canManageClipTags, canManageModels, canManageNodes, canManageUsers } = useCapabilities();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const manageIntermediatesOf = useCallback(
@@ -137,6 +149,14 @@ export const Launchpad = () => {
         render: () => <NodesPage />,
       },
       {
+        condition: canManageClipTags,
+        group: 'manage',
+        icon: TagsIcon,
+        id: 'cliptags',
+        label: t('launchpad.sections.cliptags'),
+        render: () => <ClipTagsPage />,
+      },
+      {
         group: 'manage',
         icon: TypeIcon,
         id: 'fonts',
@@ -161,7 +181,7 @@ export const Launchpad = () => {
     ] satisfies (LaunchpadSection & { condition?: boolean })[];
 
     return sections.filter((section) => section.condition ?? true);
-  }, [canManageModels, canManageNodes, canManageUsers, manageIntermediatesOf, t]);
+  }, [canManageClipTags, canManageModels, canManageNodes, canManageUsers, manageIntermediatesOf, t]);
 
   return (
     <ProjectActionsMenuProvider>

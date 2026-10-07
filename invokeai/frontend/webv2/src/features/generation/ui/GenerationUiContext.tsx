@@ -1,3 +1,4 @@
+import type { ClipTagHotPrefix } from '@features/cliptags/contracts';
 import type { GenerationModelCatalogItem, PromptHistoryItem } from '@features/generation/contracts';
 import type { RebalancePreset } from '@features/generation/core/conditioningRebalance';
 import type { GenerateSettings } from '@features/generation/core/types';
@@ -55,6 +56,11 @@ export interface GenerationUiAdapter {
     canManagePromptTemplates: boolean;
     /** Edit prompts shared with everyone; never another user's private prompt. */
     canManageSharedSystemPrompts: boolean;
+  };
+  /** Typing the hot prefix in a prompt searches the imported CLIP tags. */
+  clipTags: {
+    enabled: boolean;
+    hotPrefix: ClipTagHotPrefix;
   };
   gallery: {
     /** Raise Gallery/Preview and locate the image's board, page, and cell. */
