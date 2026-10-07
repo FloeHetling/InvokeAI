@@ -154,6 +154,12 @@ const usersHomeRoute = createRoute({
   path: 'users',
 });
 
+const clipTagsHomeRoute = createRoute({
+  beforeLoad: () => requireLaunchpadCapability('canManageClipTags'),
+  ...launchpadRouteOptions,
+  path: 'cliptags',
+});
+
 const fontsHomeRoute = createRoute({
   ...launchpadRouteOptions,
   path: 'fonts',
@@ -254,6 +260,7 @@ export const router = createRouter({
       modelsHomeRoute,
       nodesHomeRoute,
       usersHomeRoute,
+      clipTagsHomeRoute,
       fontsHomeRoute,
       preferencesHomeRoute,
       preferencesSectionRoute,

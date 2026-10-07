@@ -2,7 +2,7 @@
 title: Prompt Tools
 sidebar:
   order: 4
-lastUpdated: 2026-09-30
+lastUpdated: 2026-10-07
 ---
 
 The prompt toolbar holds tools that help you write prompts. **Expand Prompt** and **Image to Prompt** use local language models to write or rewrite a prompt for you; if no compatible model is installed, the tool's popover says so and offers an **Open Model Manager** button. **Prompt triggers** insert the trigger phrases, embeddings and wildcards your models need.
@@ -105,6 +105,33 @@ Trigger phrases come from the model's creator, so check the model's download pag
 * Trigger phrases are included when you [export and import a model's settings](/users-guide/models/introduction/#exporting-and-importing-model-settings).
 
 The Guidance section of the Generate panel shows each LoRA's trigger phrases under its name as a reminder. Adding a LoRA does not insert them into your prompt; use the **+** menu for that.
+
+## CLIP tag autocomplete
+
+Many SD 1.5 and SDXL models, anime and illustration models in particular, were trained on captions made of short tags such as `blue_hair` or `by artist_name`. **CLIP tag autocomplete** searches a tag list you import and inserts the tag you pick, written the way your model expects it. It is off until you turn it on, and the tag list starts empty.
+
+### Turning it on
+
+Open **Settings** and choose **Tag autocomplete**. Turn on **CLIP tag autocomplete** and choose the **Hot prefix**, `~` (tilde) or `*` (asterisk). Both are saved with your preferences. If the tag database cannot be used, for example because this Python build has no SQLite FTS5 support, the section says why and the feature stays off.
+
+### Using it
+
+Type the hot prefix at the start of a word in the positive or negative prompt, for example `1girl, ~blue ha`. A prefix inside a word, as in `a~b`, is left alone. The text after the prefix is searched as you type, up to the next comma or the end of the line, and needs at least two characters. Spaces and underscores count the same.
+
+The list shows the best matches with a colored dot for the tag type and the tag's popularity. The buttons above it narrow the search to **Artists & copyrights**, **Characters** or **Other tags**; with one selected, scrolling to the end of the list loads more results. Without a category you get the 20 best matches.
+
+Use the arrow keys to choose, **Alt+Left** and **Alt+Right** to switch category, **Enter** or **Tab** to insert, and **Escape** to close the list. The tag replaces the prefix and what you typed after it, followed by a comma and a space; a comma already after the cursor is taken over rather than doubled.
+
+### Managing the tag data
+
+On a single-user installation, or as an administrator, open **Tag Autocomplete** under **Manage** in the Launchpad (or **Open tag manager** in the settings section). Everyone can use the tags; only administrators can change them.
+
+* **Import tags** reads a CSV file. Choose the file, tell the importer which column holds the tag, and optionally the popularity and the type, then check the preview. You can import into **Uncategorized**, a **new tag set**, or an **existing tag set** (merge or replace). **Download sample CSV** shows the expected layout. Tag types are `general`, `artist`, `copyright`, `character`, `meta` and `other`; a type the importer does not know becomes `other`. Importing a tag that exists already keeps one copy and the higher popularity.
+* **Tags** is a searchable list. Filter by type or tag set, edit a tag's text, type, popularity and sets, or select tags to add them to or remove them from a set, change their type or delete them. **Select all** can cover every tag matching the current filter, not only the ones loaded.
+* **Tag sets** group tags, for example by model family. Deleting a set keeps its tags.
+* **Syntax profiles** decide how a tag is written into the prompt: spaces to underscores, escaping parentheses and colons, appending the tag type in parentheses, and prefixing artist tags with `by`. Without a profile the tag is inserted as stored.
+
+Each main model can use one syntax profile and any number of tag sets. Set them in the **Model Manager**, in the **CLIP Tag Autocomplete** section of the model's detail view. A model's tag sets do not hide other tags: a tag from one of its sets is ranked ahead of an otherwise equal match. Tag settings are removed together with a deleted model and are not carried over when a model is converted.
 
 ## Text LLM workflow nodes
 

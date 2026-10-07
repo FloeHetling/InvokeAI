@@ -1,6 +1,9 @@
 import { useMountEffect } from '@platform/react/useMountEffect';
 
-/** Dismiss stale page-space anchors on scrolling, excluding the popover's own scroll. */
+/**
+ * Dismiss stale page-space anchors on scrolling, excluding the popover's own scroll and the scroll of the prompt
+ * suggestion lists (`data-prompt-autocomplete`), which scroll to keep the highlighted option in view.
+ */
 export const useDismissOnViewportChange = (enabled: boolean, dismiss: () => void): void => {
   useMountEffect(() => {
     if (!enabled) {
@@ -8,7 +11,10 @@ export const useDismissOnViewportChange = (enabled: boolean, dismiss: () => void
     }
 
     const handleViewportChange = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest('[data-scope="popover"][data-part="content"]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('[data-scope="popover"][data-part="content"], [data-prompt-autocomplete]')
+      ) {
         return;
       }
 

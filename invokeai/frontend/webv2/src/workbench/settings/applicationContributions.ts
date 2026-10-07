@@ -82,6 +82,22 @@ export const projectSettings = section('project', 'Project', [
 export const galleryPreferenceSettings = section('gallery', 'Gallery', [
   preference('confirmImageDeletion', 'Confirm image deletion', 'delete safety'),
 ]);
+export const clipTagSettings = section('clipTags', 'Tag autocomplete', [
+  preference('clipTagAutocompleteEnabled', 'CLIP tag autocomplete', 'tags prompt danbooru booru'),
+  {
+    id: 'clipTagAutocompleteHotPrefix',
+    label: text('clipTagAutocompleteHotPrefix.label', 'Hot prefix'),
+    description: text('clipTagAutocompleteHotPrefix.description'),
+    keywords: 'tags prompt tilde asterisk',
+    kind: 'select',
+    scope: 'preference',
+    options: [
+      { value: '~', label: text('options.tilde', '~ (tilde)') },
+      { value: '*', label: text('options.asterisk', '* (asterisk)') },
+    ],
+  },
+  custom('clipTagManager', 'Tag data', 'none'),
+]);
 export const previewProjectSettings = section('preview', 'Preview', [
   {
     ...preference('antialiasProgressImages', 'Antialias progress images'),
@@ -157,6 +173,7 @@ export const applicationSettingsContributions = [
   hotkeysSettings,
   projectSettings,
   galleryPreferenceSettings,
+  clipTagSettings,
   previewProjectSettings,
   imageMapVocabularySettings,
   developerSettings,

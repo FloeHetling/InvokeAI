@@ -13,6 +13,8 @@ from invokeai.app.services.board_video_records.board_video_records_default impor
 from invokeai.app.services.boards.boards_default import BoardService
 from invokeai.app.services.bulk_download.bulk_download_default import BulkDownloadService
 from invokeai.app.services.client_state_persistence.client_state_persistence_default import ClientStatePersistence
+from invokeai.app.services.clip_tag_autocomplete.clip_tag_autocomplete_database import CtaDatabase
+from invokeai.app.services.clip_tag_autocomplete.clip_tag_autocomplete_service import ClipTagAutocompleteService
 from invokeai.app.services.config.config_default import InvokeAIAppConfig
 from invokeai.app.services.download.download_default import DownloadQueueService
 from invokeai.app.services.events.events_fastapievents import FastAPIEventService
@@ -101,6 +103,35 @@ class ApiDependencies:
 
     invoker: Invoker
     database: Optional[Database] = None
+
+    @staticmethod
+    def _start_clip_tag_autocomplete(
+        configuration: InvokeAIAppConfig, logger: Logger, model_record_service: ModelRecordServiceSQL
+    ) -> ClipTagAutocompleteService | None:
+        cta_db: CtaDatabase | None = None
+        service: ClipTagAutocompleteService | None = None
+        try:
+            cta_db = CtaDatabase(config=configuration, logger=logger)
+            cta_db.initialize()
+            service = ClipTagAutocompleteService(cta_db=cta_db, logger=logger)
+            if cta_db.is_available:
+                # Ask the registry about each configured model instead of listing every model: a record that fails
+                # validation (after a downgrade, say) is not an orphan, and its settings must survive.
+                service.cleanup_orphan_model_configs(
+                    {
+                        model_id
+                        for model_id in service.get_configured_model_ids()
+                        if model_record_service.exists(model_id)
+                    }
+                )
+            return service
+        except Exception:
+            logger.exception("CLIP tag autocomplete could not be started; continuing without it")
+            if service is not None:
+                service.stop()
+            elif cta_db is not None:
+                cta_db.dispose()
+            return None
 
     @staticmethod
     def initialize(
@@ -225,6 +256,12 @@ class ApiDependencies:
             max_library_bytes=configuration.max_font_library_bytes,
         )
 
+        # The CTA sidecar keeps its own database, and model deletion keeps it in step with the model registry. It is an
+        # optional extra: if it cannot start, the app still does.
+        clip_tag_autocomplete = ApiDependencies._start_clip_tag_autocomplete(
+            configuration, logger, model_record_service
+        )
+
         services = InvocationServices(
             board_image_records=board_image_records,
             board_images=board_images,
@@ -236,6 +273,7 @@ class ApiDependencies:
             events=events,
             image_files=image_files,
             image_moves=image_moves,
+            clip_tag_autocomplete=clip_tag_autocomplete,
             progress_previews=MemoryProgressPreviews(),
             image_records=image_records,
             images=images,

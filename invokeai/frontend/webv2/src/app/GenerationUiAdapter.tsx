@@ -294,6 +294,16 @@ export const GenerationUiAdapterProvider = ({ children }: { children: ReactNode 
     () => ({ canManagePromptTemplates, canManageSharedSystemPrompts }),
     [canManagePromptTemplates, canManageSharedSystemPrompts]
   );
+  const clipTagAutocompleteEnabled = useWorkbenchPreferenceSelector(
+    (preferences) => preferences.clipTagAutocompleteEnabled
+  );
+  const clipTagAutocompleteHotPrefix = useWorkbenchPreferenceSelector(
+    (preferences) => preferences.clipTagAutocompleteHotPrefix
+  );
+  const clipTagsGroup = useMemo<GenerationUiAdapter['clipTags']>(
+    () => ({ enabled: clipTagAutocompleteEnabled, hotPrefix: clipTagAutocompleteHotPrefix }),
+    [clipTagAutocompleteEnabled, clipTagAutocompleteHotPrefix]
+  );
   const accountGroup = useMemo<GenerationUiAdapter['account']>(
     () => ({
       currentUserId: session.user?.user_id ?? null,
@@ -381,6 +391,7 @@ export const GenerationUiAdapterProvider = ({ children }: { children: ReactNode 
       CanvasRenderSize: GenerateCanvasRenderSize,
       account: accountGroup,
       capabilities: capabilitiesGroup,
+      clipTags: clipTagsGroup,
       gallery: galleryGroup,
       generateValues,
       models: modelsGroup,
@@ -396,6 +407,7 @@ export const GenerationUiAdapterProvider = ({ children }: { children: ReactNode 
     [
       accountGroup,
       capabilitiesGroup,
+      clipTagsGroup,
       galleryGroup,
       generateValues,
       modelsGroup,

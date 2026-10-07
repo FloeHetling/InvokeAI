@@ -1,3 +1,4 @@
+import type { ClipTagHotPrefix } from '@features/cliptags/contracts';
 import type { WorkbenchLanguage } from '@platform/i18n/languages';
 import type { LogLevel, LogNamespace } from '@platform/logging/contracts';
 import type { SettingsTarget } from '@platform/ui/settings/contracts';
@@ -66,6 +67,9 @@ export interface WorkbenchPreferences {
   showPromptSyntaxHighlighting: boolean;
   /** Text size of the prompt fields. */
   promptFontSize: PromptFontSize;
+  /** Typing the hot prefix in a prompt searches the imported CLIP tags. */
+  clipTagAutocompleteEnabled: boolean;
+  clipTagAutocompleteHotPrefix: ClipTagHotPrefix;
   developerLogEnabled: boolean;
   developerLogLevel: LogLevel;
   developerLogNamespaces: LogNamespace[];

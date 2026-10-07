@@ -801,6 +801,7 @@ def test_conversion_cleans_scratch_after_success_and_ordinary_failure(
         ),
         configuration=SimpleNamespace(models_path=models_path),
         model_images=SimpleNamespace(get=model_image),
+        clip_tag_autocomplete=None,
         logger=MagicMock(),
     )
     monkeypatch.setattr(model_manager_router, "ApiDependencies", MockApiDependencies(DummyInvoker(services)))
@@ -1530,3 +1531,45 @@ def test_the_orphan_routes_scan_with_the_model_records(
     assert deleted.status_code == 200, deleted.text
     assert deleted.json() == {"deleted": ["unregistered"], "errors": {}}
     assert (models_path / "registered").exists() and not (models_path / "unregistered").exists()
+
+
+def test_deleting_a_model_drops_its_clip_tag_autocomplete_settings() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from invokeai.app.api.routers.model_manager import delete_model
+
+    with patch("invokeai.app.api.routers.model_manager.ApiDependencies") as deps:
+        cta = deps.invoker.services.clip_tag_autocomplete
+        delete_model(MagicMock(), key="model-key")
+
+    cta.request_model_config_cleanup.assert_called_once_with("model-key")
+
+
+def test_bulk_delete_drops_clip_tag_autocomplete_settings_only_for_deleted_models() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from invokeai.app.api.routers.model_manager import BulkDeleteModelsRequest, bulk_delete_models
+
+    with patch("invokeai.app.api.routers.model_manager.ApiDependencies") as deps:
+        cta = deps.invoker.services.clip_tag_autocomplete
+        installer = deps.invoker.services.model_manager.install
+        installer.delete.side_effect = (
+            lambda key: (_ for _ in ()).throw(RuntimeError("disk error")) if key == "bad" else None
+        )
+        response = bulk_delete_models(MagicMock(), request=BulkDeleteModelsRequest(keys=["good", "bad"]))
+
+    assert response.deleted == ["good"]
+    cta.request_model_config_cleanup.assert_called_once_with("good")
+
+
+def test_deleting_a_model_still_works_without_the_clip_tag_autocomplete_service() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from invokeai.app.api.routers.model_manager import delete_model
+
+    with patch("invokeai.app.api.routers.model_manager.ApiDependencies") as deps:
+        deps.invoker.services.clip_tag_autocomplete = None
+        installer = deps.invoker.services.model_manager.install
+        delete_model(MagicMock(), key="model-key")
+
+    installer.delete.assert_called_once_with("model-key")

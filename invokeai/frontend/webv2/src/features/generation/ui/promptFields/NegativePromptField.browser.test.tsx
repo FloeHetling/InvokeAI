@@ -18,7 +18,10 @@ await i18n.use(initReactI18next).init({ fallbackLng: 'en', lng: 'en', resources:
 
 vi.mock('@features/generation/ui/GenerationUiContext', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  useGenerationUi: () => ({ models: { catalog: MODEL_CATALOG, ensureLoaded: vi.fn() } }),
+  useGenerationUi: () => ({
+    clipTags: { enabled: false, hotPrefix: '~' },
+    models: { catalog: MODEL_CATALOG, ensureLoaded: vi.fn() },
+  }),
 }));
 
 vi.mock('@features/generation/data/wildcards', () => ({

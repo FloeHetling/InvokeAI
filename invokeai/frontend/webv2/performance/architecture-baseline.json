@@ -2,15 +2,15 @@
   "build": {
     "launchpad": {
       "baseline": {
-        "brotliBytes": 794977,
+        "brotliBytes": 797237,
         "cssRawBytes": 2159,
         "fontRawBytes": 219480,
-        "gzipBytes": 793689,
+        "gzipBytes": 796341,
         "imageRawBytes": 44398,
-        "initialRawBytes": 2042114,
-        "largestAssetRawBytes": 749029,
+        "initialRawBytes": 2052572,
+        "largestAssetRawBytes": 752421,
         "otherAssetRawBytes": 0,
-        "ownedRawBytes": 98621,
+        "ownedRawBytes": 99279,
         "requestCount": 35,
         "scriptRequestCount": 19,
         "sourceOwners": [
@@ -131,6 +131,9 @@
           "source:src/app/main.tsx",
           "source:src/app/router.tsx",
           "source:src/assets/SplashImage.webp",
+          "source:src/features/cliptags/core/prompt.ts",
+          "source:src/features/cliptags/core/types.ts",
+          "source:src/features/cliptags/launchpad.tsx",
           "source:src/features/fonts/data/keys.ts",
           "source:src/features/fonts/launchpad.tsx",
           "source:src/features/fonts/react.tsx",
@@ -346,15 +349,15 @@
     },
     "editor": {
       "baseline": {
-        "brotliBytes": 1171873,
+        "brotliBytes": 1178312,
         "cssRawBytes": 2159,
         "fontRawBytes": 219480,
-        "gzipBytes": 1165072,
+        "gzipBytes": 1171920,
         "imageRawBytes": 44398,
-        "initialRawBytes": 3208701,
-        "largestAssetRawBytes": 749029,
+        "initialRawBytes": 3232596,
+        "largestAssetRawBytes": 752421,
         "otherAssetRawBytes": 0,
-        "ownedRawBytes": 150716,
+        "ownedRawBytes": 152244,
         "requestCount": 72,
         "scriptRequestCount": 56,
         "sourceOwners": [
@@ -496,6 +499,9 @@
           "source:src/app/router.tsx",
           "source:src/app/workbenchPorts.tsx",
           "source:src/assets/SplashImage.webp",
+          "source:src/features/cliptags/core/prompt.ts",
+          "source:src/features/cliptags/core/types.ts",
+          "source:src/features/cliptags/launchpad.tsx",
           "source:src/features/fonts/data/keys.ts",
           "source:src/features/fonts/launchpad.tsx",
           "source:src/features/fonts/react.tsx",
@@ -1092,7 +1098,7 @@
       "source": "src/app/WorkbenchApp.tsx"
     }
   },
-  "capturedAt": "2026-10-09",
+  "capturedAt": "2026-10-14",
   "developmentInvalidation": {
     "platformUiBarrel": {
       "specifier": "@platform/ui",

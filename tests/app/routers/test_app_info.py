@@ -293,6 +293,8 @@ def test_reset_external_provider_config_removes_provider_models(
     mock_model_manager.store = mock_store
     mock_model_manager.install = mock_install
     mock_invoker.services.model_manager = mock_model_manager
+    cta_service = Mock()
+    mock_invoker.services.clip_tag_autocomplete = cta_service
 
     monkeypatch.setattr("invokeai.app.api.routers.app_info.ApiDependencies", MockApiDependencies(mock_invoker))
     monkeypatch.setattr("invokeai.app.api.auth_dependencies.ApiDependencies", MockApiDependencies(mock_invoker))
@@ -305,6 +307,7 @@ def test_reset_external_provider_config_removes_provider_models(
         model_type=ModelType.ExternalImageGenerator,
     )
     mock_install.delete.assert_called_once_with("openai_model")
+    cta_service.request_model_config_cleanup.assert_called_once_with("openai_model")
 
 
 def test_set_external_provider_config_clears_provider_models_when_api_key_removed(
