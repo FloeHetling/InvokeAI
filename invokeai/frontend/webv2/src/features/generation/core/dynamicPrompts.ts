@@ -267,9 +267,39 @@ export const getWildcardNameError = (
   return null;
 };
 
-/** # is expansion syntax because the backend strips comments without an escape, even without other dynamic syntax. */
+const MARKDOWN_HEADING_HASHES_RE = /^#{1,6}(?=[ \t]+\S)/;
+
+/**
+ * Length of the Markdown heading marker (`#` to `######`) that starts at `index`, or 0. A marker opens its line and is
+ * followed by text; the backend keeps it as literal prompt text instead of reading it as a comment.
+ */
+export const getMarkdownHeadingMarkerLength = (prompt: string, index: number): number => {
+  const lineStart = prompt.lastIndexOf('\n', index - 1) + 1;
+
+  if (!/^[ \t]*$/.test(prompt.slice(lineStart, index))) {
+    return 0;
+  }
+
+  return MARKDOWN_HEADING_HASHES_RE.exec(prompt.slice(index))?.[0].length ?? 0;
+};
+
+const hasCommentHash = (prompt: string): boolean => {
+  for (let index = prompt.indexOf('#'); index !== -1; index = prompt.indexOf('#', index + 1)) {
+    const headingLength = getMarkdownHeadingMarkerLength(prompt, index);
+
+    if (headingLength === 0) {
+      return true;
+    }
+
+    index += headingLength - 1;
+  }
+
+  return false;
+};
+
+/** A comment `#` is expansion syntax because the backend strips comments without an escape, even without other dynamic syntax. */
 export const hasDynamicPromptSyntax = (prompt: string): boolean =>
-  /\{[\s\S]*\}/.test(prompt) || prompt.includes('#') || scanWildcardReferences(prompt).length > 0;
+  /\{[\s\S]*\}/.test(prompt) || hasCommentHash(prompt) || scanWildcardReferences(prompt).length > 0;
 
 export const isDynamicPromptsSeedBehaviour = (value: unknown): value is DynamicPromptsSeedBehaviour =>
   value === 'per-iteration' || value === 'per-image';

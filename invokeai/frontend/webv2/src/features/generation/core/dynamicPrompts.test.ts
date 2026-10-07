@@ -34,6 +34,15 @@ describe('hasDynamicPromptSyntax', () => {
     expect(hasDynamicPromptSyntax('a red ball \\# for now')).toBe(true);
   });
 
+  // A Markdown heading stays literal prompt text, so a prompt structured by headings is not expanded.
+  it('ignores Markdown headings but not a comment after one', () => {
+    expect(hasDynamicPromptSyntax('# artstyle:\nfurry\n\n  ## medium:\nfilm grain')).toBe(false);
+    expect(hasDynamicPromptSyntax('# artstyle: # note')).toBe(true);
+    expect(hasDynamicPromptSyntax('#tag\nfurry')).toBe(true);
+    expect(hasDynamicPromptSyntax('####### seven')).toBe(true);
+    expect(hasDynamicPromptSyntax('# artstyle:\n{red|blue}')).toBe(true);
+  });
+
   it('ignores prompts with neither a variant nor a wildcard', () => {
     expect(hasDynamicPromptSyntax('a red ball')).toBe(false);
     expect(hasDynamicPromptSyntax('unclosed { brace')).toBe(false);

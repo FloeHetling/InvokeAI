@@ -134,5 +134,5 @@ Each use varies on its own, like a group written out in full, so this gives all 
 
 ### Comments
 
-Everything after a `#` is treated as a comment and left out of the prompt. Avoid `#` in ordinary prompts, since the rest of the prompt after it is dropped.
+Everything after a `#` is treated as a comment and left out of the prompt. Avoid `#` in ordinary prompts, since the rest of the prompt after it is dropped. A line that starts with `#` and then text, such as `# artstyle:` or `## scene`, is the exception: it is a Markdown heading, so it stays in the prompt. This lets sectioned prompts for T5-based models such as FLUX and Chroma keep their headings. A `#` after text on the same line, or one with no space after it, still starts a comment.
 

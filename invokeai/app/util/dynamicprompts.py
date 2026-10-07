@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -14,6 +15,20 @@ from dynamicprompts.generators import CombinatorialPromptGenerator, RandomPrompt
 from dynamicprompts.parser.parse import parse
 from dynamicprompts.wildcards import WildcardManager
 from pyparsing import ParseException
+
+# A line that opens with 1-6 `#` and then text is a Markdown heading, which prompts for T5-style encoders use to
+# structure sections. The dynamicprompts grammar would read it as a comment and drop the line, so the heading hashes
+# are swapped for a private-use character that the grammar treats as literal text, then restored after generation.
+_HEADING_HASHES = re.compile(r"^([ \t]*)(#{1,6})(?=[ \t]+\S)", re.MULTILINE)
+_HASH_PLACEHOLDER = "\ue000"
+
+
+def _protect_headings(prompt: str) -> str:
+    return _HEADING_HASHES.sub(lambda m: m.group(1) + _HASH_PLACEHOLDER * len(m.group(2)), prompt)
+
+
+def _restore_headings(prompt: str) -> str:
+    return prompt.replace(_HASH_PLACEHOLDER, "#")
 
 
 def _iter_wildcard_names(command: Command) -> Iterator[str]:
@@ -96,13 +111,16 @@ def expand_dynamic_prompt(
     Shared by the `/utilities/dynamicprompts` route and `DynamicPromptInvocation` so the two agree
     on guard, generator selection and error text.
     """
+    original = prompt
+    prompt = _protect_headings(prompt)
+
     if combinatorial:
         # Unresolvable wildcards either hang the combinatorial generator or silently collapse the
         # prompt, so bail out before generating. The random generator needs no such guard.
         missing_wildcards = find_missing_wildcards(prompt, wildcard_manager)
         if missing_wildcards:
             return ExpandedPrompts(
-                prompts=[prompt],
+                prompts=[original],
                 error=f"No values found for wildcard(s): {', '.join(missing_wildcards)}",
             )
 
@@ -112,6 +130,6 @@ def expand_dynamic_prompt(
         else:
             prompts = RandomPromptGenerator(wildcard_manager, seed=seed).generate(prompt, num_images=max_prompts)
     except ParseException as e:
-        return ExpandedPrompts(prompts=[prompt], error=str(e))
+        return ExpandedPrompts(prompts=[original], error=str(e))
 
-    return ExpandedPrompts(prompts=list(prompts) if prompts else [""])
+    return ExpandedPrompts(prompts=[_restore_headings(p) for p in prompts] if prompts else [""])
