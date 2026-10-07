@@ -189,6 +189,7 @@ const createStableGroups = () => ({
   CanvasRenderSize: () => null,
   account: { currentUserId: null, multiuserEnabled: false },
   capabilities: { canManagePromptTemplates: false, canManageSharedSystemPrompts: false },
+  clipTags: { enabled: false, hotPrefix: '~' as const },
   gallery: { findImage: noop, getUploadBoardId: () => Promise.resolve('none'), selectedImage: null, touchImages: noop },
   models: {
     ModelSelect: MainModelPicker,

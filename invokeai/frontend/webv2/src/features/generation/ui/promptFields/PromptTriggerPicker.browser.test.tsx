@@ -19,7 +19,10 @@ const SELECTED_MODEL = { base: 'sdxl', name: 'Juggernaut', trigger_phrases: ['ju
 
 vi.mock('@features/generation/ui/GenerationUiContext', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  useGenerationUi: () => ({ models: { catalog: MODEL_CATALOG, ensureLoaded: vi.fn() } }),
+  useGenerationUi: () => ({
+    clipTags: { enabled: false, hotPrefix: '~' },
+    models: { catalog: MODEL_CATALOG, ensureLoaded: vi.fn() },
+  }),
 }));
 
 const WILDCARDS = [

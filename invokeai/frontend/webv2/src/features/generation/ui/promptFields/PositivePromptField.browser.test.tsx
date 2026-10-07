@@ -56,6 +56,7 @@ vi.mock('@features/generation/ui/GenerationUiContext', async (importOriginal) =>
       remove: vi.fn(),
       restore: ui.restoreHistory,
     },
+    clipTags: { enabled: false, hotPrefix: '~' },
     capabilities: { canManagePromptTemplates: false, canManageSharedSystemPrompts: false },
     gallery: { selectedImage: null },
     models: { catalog: [], ensureLoaded: vi.fn() },

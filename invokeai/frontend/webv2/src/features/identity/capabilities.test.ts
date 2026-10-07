@@ -20,6 +20,7 @@ const session = (overrides: Partial<AuthSession>): AuthSession => ({
 describe('Identity route capabilities', () => {
   it.each(['unknown', 'unavailable'] as const)('grants nothing while auth mode is %s', (phase) => {
     expect(getCapabilities(session({ multiuserEnabled: false, phase }))).toEqual({
+      canManageClipTags: false,
       canManageAppConfig: false,
       canManageImageMapVocabulary: false,
       canManageModels: false,
@@ -34,6 +35,7 @@ describe('Identity route capabilities', () => {
 
   it('allows all local management in single-user mode', () => {
     expect(getCapabilities(session({ multiuserEnabled: false }))).toEqual({
+      canManageClipTags: true,
       canManageAppConfig: true,
       canManageImageMapVocabulary: true,
       canManageModels: true,
@@ -58,6 +60,7 @@ describe('Identity route capabilities', () => {
     };
 
     expect(getCapabilities(session({ user: { ...baseUser, is_admin: false } }))).toEqual({
+      canManageClipTags: false,
       canManageAppConfig: false,
       canManageImageMapVocabulary: false,
       canManageModels: false,
@@ -69,6 +72,7 @@ describe('Identity route capabilities', () => {
       canClearOthersIntermediates: false,
     });
     expect(getCapabilities(session({ user: { ...baseUser, is_admin: true } }))).toEqual({
+      canManageClipTags: true,
       canManageAppConfig: true,
       canManageImageMapVocabulary: true,
       canManageModels: true,

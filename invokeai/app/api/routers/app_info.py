@@ -481,7 +481,8 @@ def _sync_external_starter_models_for_provider(provider_id: str) -> None:
 
 
 def _remove_external_models_for_provider(provider_id: str) -> None:
-    model_manager = ApiDependencies.invoker.services.model_manager
+    services = ApiDependencies.invoker.services
+    model_manager = services.model_manager
     external_models = model_manager.store.search_by_attr(
         base_model=BaseModelType.External,
         model_type=ModelType.ExternalImageGenerator,
@@ -492,6 +493,8 @@ def _remove_external_models_for_provider(provider_id: str) -> None:
             continue
         try:
             model_manager.install.delete(model.key)
+            if services.clip_tag_autocomplete is not None:
+                services.clip_tag_autocomplete.request_model_config_cleanup(model.key)
         except UnknownModelException:
             logging.warning(f"External model key '{model.key}' was already removed while resetting '{provider_id}'")
         except Exception as error:
