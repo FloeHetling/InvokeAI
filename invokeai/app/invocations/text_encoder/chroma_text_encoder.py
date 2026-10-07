@@ -1,3 +1,4 @@
+import math
 import re
 from contextlib import ExitStack, contextmanager, nullcontext
 from dataclasses import dataclass
@@ -34,14 +35,67 @@ _COLON_WEIGHT = re.compile(rf"\s*({_WEIGHT_NUMBER})\s*")
 _TRAILING_WEIGHT = re.compile(rf"({_WEIGHT_NUMBER})(?![\w.]*\w)")
 
 
+# Compel-style `word++` / `word-` weights, which Chroma does not read.
+_COMPEL_SYMBOL_WEIGHT = re.compile(r"\w+[+-]+(?![\w+-])")
+_MAX_LOGGED_NOTES = 10
+
+
+@dataclass(frozen=True)
+class _ChromaPromptSegment:
+    text: str
+    weight: float
+    token_ids: tuple[int, ...]
+
+
 @dataclass(frozen=True)
 class _ChromaPromptTokenization:
     input_ids: torch.Tensor
     token_weights: torch.Tensor
+    segments: tuple[_ChromaPromptSegment, ...] = ()
+    # Weight syntax that was left as plain text, for the tokenization log.
+    notes: tuple[str, ...] = ()
 
     @property
     def has_weights(self) -> bool:
         return bool(torch.any(self.token_weights != 1.0).item())
+
+
+def _format_tokenization_log(tokenizer: PreTrainedTokenizerBase, tokenized: _ChromaPromptTokenization) -> str:
+    """Show what T5 receives: one line per weighted segment with alternating token colors, as Compel's log does."""
+
+    def paint(code: str, text: str) -> str:
+        return f"\x1b[{code}m{text}\x1b[0m"
+
+    weighted = sum(not math.isclose(segment.weight, 1.0) for segment in tokenized.segments)
+    lines = [
+        f">> [CHROMA T5 TOKENLOG] Tokens ({tokenized.input_ids.shape[1]} incl. EOS, no truncation or padding; "
+        f"{weighted} weighted segment(s)):"
+    ]
+    notes = list(tokenized.notes)
+    color_index = 0
+    unknown_count = 0
+    for segment in tokenized.segments:
+        pieces: list[str] = []
+        for token in tokenizer.convert_ids_to_tokens(list(segment.token_ids)):
+            if token == tokenizer.unk_token:
+                pieces.append(paint("1;31", token))
+                unknown_count += 1
+            else:
+                pieces.append(paint(f"0;3{color_index % 6 + 1}", token.replace("▁", " ")))
+            color_index += 1
+        is_weighted = not math.isclose(segment.weight, 1.0)
+        label = f"x{segment.weight:.4g}".ljust(7)
+        lines.append(f"  {paint('1;33' if is_weighted else '2', label)}| {''.join(pieces)}")
+    lines.append(f"  {paint('2', 'x1'.ljust(7))}| {paint('0;31', str(tokenizer.eos_token))}")
+
+    if unknown_count:
+        notes.append(f"{unknown_count} <unk> token(s): T5 cannot read some characters here, such as {{ }} < ~ and `")
+    if tokenized.input_ids.shape[1] > 512:
+        notes.append("more than 512 tokens: Diffusers' Chroma pipeline truncates there, this node keeps everything")
+    lines.extend(f"  {paint('1;33', '!')} {note}" for note in notes[:_MAX_LOGGED_NOTES])
+    if len(notes) > _MAX_LOGGED_NOTES:
+        lines.append(f"  {paint('1;33', '!')} ...and {len(notes) - _MAX_LOGGED_NOTES} more")
+    return "\n".join(lines)
 
 
 def _get_chroma_t5_working_mem_bytes(device: torch.device) -> int | None:
@@ -110,14 +164,17 @@ class ChromaTextEncoderInvocation(BaseInvocation):
     prompt: str = InputField(description="Text prompt to encode.", ui_component=UIComponent.Textarea)
 
     @classmethod
-    def _parse_prompt_attention(cls, prompt: str, weight: float = 1.0) -> list[tuple[str, float]]:
+    def _parse_prompt_attention(
+        cls, prompt: str, weight: float = 1.0, notes: list[str] | None = None
+    ) -> list[tuple[str, float]]:
         """Parse parenthesized prompt weights into independently tokenized segments.
 
         Parenthesized text gets a 1.1x weight per nesting level. A numeric weight, either
         ``(detail:1.35)`` or ``(detail)1.35``, replaces that group's 1.1x. Weights of nested
         groups multiply, as in the prompt editor. Escaped parentheses are treated as literal
         text. Segment boundaries are preserved so each weighted span can be tokenized
-        independently before concatenation.
+        independently before concatenation. Weight syntax that is left as plain text is
+        described in ``notes`` when given.
         """
 
         def find_closing_paren(text: str, opening_index: int) -> int | None:
@@ -152,6 +209,8 @@ class ChromaTextEncoderInvocation(BaseInvocation):
 
             closing_index = find_closing_paren(prompt, cursor)
             if closing_index is None:
+                if notes is not None:
+                    notes.append(f"unclosed '(' stays text: '{prompt[cursor : cursor + 40]}'")
                 if cursor > literal_start:
                     segments.append((unescape_parentheses(prompt[literal_start:cursor]), weight))
                 segments.append((unescape_parentheses(prompt[cursor:]), weight))
@@ -165,20 +224,43 @@ class ChromaTextEncoderInvocation(BaseInvocation):
             own_weight = 1.1
             weight_separator = group_text.rfind(":")
             colon_weight = _COLON_WEIGHT.fullmatch(group_text, weight_separator + 1) if weight_separator > 0 else None
+            trailing_weight = None if colon_weight else _TRAILING_WEIGHT.match(prompt, group_end)
             if colon_weight:
                 own_weight = float(colon_weight.group(1))
                 group_text = group_text[:weight_separator]
-            elif trailing_weight := _TRAILING_WEIGHT.match(prompt, group_end):
+            elif trailing_weight:
                 own_weight = float(trailing_weight.group(1))
                 group_end = trailing_weight.end()
+            elif notes is not None:
+                notes.extend(cls._describe_unread_weight(group_text, weight_separator, prompt[group_end:]))
 
-            segments.extend(cls._parse_prompt_attention(group_text, weight * own_weight))
+            segments.extend(cls._parse_prompt_attention(group_text, weight * own_weight, notes))
             cursor = group_end
             literal_start = cursor
 
         if literal_start < len(prompt):
             segments.append((unescape_parentheses(prompt[literal_start:]), weight))
         return segments
+
+    @staticmethod
+    def _describe_unread_weight(group_text: str, weight_separator: int, text_after: str) -> list[str]:
+        """Explain weight-like syntax around a group that kept the default 1.1x, for the tokenization log."""
+        notes: list[str] = []
+        if weight_separator > 0:
+            suffix = group_text[weight_separator + 1 :]
+            if "(" not in suffix and ")" not in suffix:
+                notes.append(
+                    f"'({group_text[:40]})' has ':' without a number after it: the text stays as written, group is x1.1"
+                )
+        if re.match(r"[0-9]|\.[0-9]", text_after):
+            word = re.match(r"\S*", text_after)
+            notes.append(
+                f"')' + '{word.group()[:12] if word else ''}' is not a weight: the number must touch ')' and end at "
+                "a word boundary, like ')1.3'"
+            )
+        elif re.match(r"[+-]+(?![\w+-])", text_after):
+            notes.append("')+' / ')-' is Compel style: Chroma reads it as text, use ')1.3'")
+        return notes
 
     @classmethod
     def tokenize_prompt(cls, tokenizer: PreTrainedTokenizerBase, prompt: str) -> _ChromaPromptTokenization:
@@ -194,7 +276,9 @@ class ChromaTextEncoderInvocation(BaseInvocation):
 
         token_ids: list[int] = []
         token_weights: list[float] = []
-        for text, weight in cls._parse_prompt_attention(prompt):
+        segments: list[_ChromaPromptSegment] = []
+        notes: list[str] = []
+        for text, weight in cls._parse_prompt_attention(prompt, notes=notes):
             if text == "":
                 continue
             encoded = tokenizer(
@@ -209,12 +293,19 @@ class ChromaTextEncoderInvocation(BaseInvocation):
                 segment_ids.pop()
             token_ids.extend(segment_ids)
             token_weights.extend([weight] * len(segment_ids))
+            segments.append(_ChromaPromptSegment(text=text, weight=weight, token_ids=tuple(segment_ids)))
 
         token_ids.append(eos_token_id)
         token_weights.append(1.0)
+        notes.extend(
+            f"'{match.group()}' looks like a Compel +/- weight: Chroma reads it as text, use (...)1.3"
+            for match in _COMPEL_SYMBOL_WEIGHT.finditer(prompt)
+        )
         return _ChromaPromptTokenization(
             input_ids=torch.tensor([token_ids], dtype=torch.long),
             token_weights=torch.tensor([token_weights], dtype=torch.float32),
+            segments=tuple(segments),
+            notes=tuple(notes),
         )
 
     @staticmethod
@@ -275,10 +366,7 @@ class ChromaTextEncoderInvocation(BaseInvocation):
                 )
 
             if context.config.get().log_tokenization:
-                context.logger.info(
-                    f">> [CHROMA T5 TOKENLOG] Tokens ({input_ids.shape[1]}, variable-length; "
-                    f"weighted={'yes' if tokenized.has_weights else 'no'})"
-                )
+                context.logger.info(_format_tokenization_log(tokenizer, tokenized))
 
             # The prompt sequence itself is unpadded, so every prompt token participates in
             # T5 self-attention and no attention mask is required. For weighted prompts,
