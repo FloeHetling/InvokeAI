@@ -1,3 +1,4 @@
+import re
 from types import SimpleNamespace
 from unittest.mock import MagicMock, call
 
@@ -6,6 +7,7 @@ import torch
 
 from invokeai.app.invocations.text_encoder.chroma_text_encoder import (
     ChromaTextEncoderInvocation,
+    _format_tokenization_log,
 )
 from invokeai.backend.chroma.model import ChromaTransformerAdapter
 
@@ -97,6 +99,75 @@ def test_chroma_prompt_attention_keeps_malformed_weights_as_text(
     assert ChromaTextEncoderInvocation._parse_prompt_attention(prompt) == [
         (text, pytest.approx(weight)) for text, weight in expected
     ]
+
+
+class _WordTokenizer:
+    """One token per whitespace-separated word; words starting with `{` are unknown."""
+
+    eos_token = "</s>"
+    eos_token_id = 1
+    unk_token = "<unk>"
+
+    def __init__(self) -> None:
+        self.pieces = {0: "<pad>", 1: "</s>", 2: "<unk>"}
+
+    def __call__(self, text: str, **_kwargs: object) -> dict[str, list[int]]:
+        ids = []
+        for word in text.split():
+            if word.startswith("{"):
+                ids.append(2)
+                continue
+            ids.append(next((i for i, piece in self.pieces.items() if piece == "▁" + word), len(self.pieces)))
+            self.pieces.setdefault(ids[-1], "▁" + word)
+        return {"input_ids": [*ids, 1]}
+
+    def convert_ids_to_tokens(self, ids: list[int]) -> list[str]:
+        return [self.pieces[i] for i in ids]
+
+
+def _plain(log: str) -> str:
+    return re.sub(r"\[[0-9;]*m", "", log)
+
+
+def test_chroma_tokenization_log_shows_each_segment_with_its_weight() -> None:
+    tokenizer = _WordTokenizer()
+    tokenized = ChromaTextEncoderInvocation.tokenize_prompt(tokenizer, "# Scene (red fox)1.3 {bad")  # type: ignore[arg-type]
+
+    log = _plain(_format_tokenization_log(tokenizer, tokenized))  # type: ignore[arg-type]
+
+    assert log.splitlines() == [
+        ">> [CHROMA T5 TOKENLOG] Tokens (6 incl. EOS, no truncation or padding; 1 weighted segment(s)):",
+        "  x1     |  # Scene",
+        "  x1.3   |  red fox",
+        "  x1     | <unk>",
+        "  x1     | </s>",
+        "  ! 1 <unk> token(s): T5 cannot read some characters here, such as { } < ~ and `",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("prompt", "expected"),
+    [
+        (r"(a)1.3 (b:2) ((c)) \(d\)", []),
+        (
+            "(a)1.5x",
+            ["')' + '1.5x' is not a weight: the number must touch ')' and end at a word boundary, like ')1.3'"],
+        ),
+        ("(a)++ b", ["')+' / ')-' is Compel style: Chroma reads it as text, use ')1.3'"]),
+        (
+            "(look: left) c",
+            ["'(look: left)' has ':' without a number after it: the text stays as written, group is x1.1"],
+        ),
+        ("(a (b:1.5))", []),
+        ("(open (a)1.2", ["unclosed '(' stays text: '(open (a)1.2'"]),
+        ("red++ fox", ["'red++' looks like a Compel +/- weight: Chroma reads it as text, use (...)1.3"]),
+        ("t-shirt a - b", []),
+    ],
+)
+def test_chroma_tokenization_notes_explain_weight_syntax_left_as_text(prompt: str, expected: list[str]) -> None:
+    tokenized = ChromaTextEncoderInvocation.tokenize_prompt(_WordTokenizer(), prompt)  # type: ignore[arg-type]
+
+    assert list(tokenized.notes) == expected
 
 
 def test_chroma_text_encoder_tokenizes_weighted_segments_then_appends_one_eos() -> None:
